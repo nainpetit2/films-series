@@ -10,7 +10,14 @@ const fmt=(v,d=1)=>v==null||v===""?"–":Number(v).toLocaleString("fr-FR",{minim
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 
 const CFG=window.APP_CONFIG||{};
-let SB_URL=CFG.supabaseUrl||LS.get("sb_url")||"", SB_KEY=CFG.supabaseKey||LS.get("sb_key")||"";
+function normUrl(u){
+  u=String(u||"").trim();
+  let m=u.match(/supabase\.com\/dashboard\/project\/([a-z0-9]{10,})/i); if(m) return `https://${m[1].toLowerCase()}.supabase.co`;
+  m=u.match(/^(?:https?:\/\/)?([a-z0-9]{10,})\.supabase\.co/i); if(m) return `https://${m[1].toLowerCase()}.supabase.co`;
+  if(/^[a-z0-9]{15,30}$/i.test(u)) return `https://${u.toLowerCase()}.supabase.co`;
+  return u.replace(/\/(rest|auth)\/v1.*$/,"").replace(/\/+$/,"");
+}
+let SB_URL=normUrl(CFG.supabaseUrl||LS.get("sb_url")||""), SB_KEY=(CFG.supabaseKey||LS.get("sb_key")||"").trim();
 let sb=null, user=null, prefs={tmdb:LS.get("tmdb")||"",omdb:LS.get("omdb")||""};
 let items=[], loaded=false;
 let tab="film", filter="avoir", query="", plat="";
@@ -391,18 +398,19 @@ function gateSetup(){
   <label>Project URL</label><input class="in" id="gUrl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false">
   <label>Clé publique (anon / publishable)</label><input class="in" id="gKey" placeholder="eyJ… ou sb_publishable_…" autocapitalize="off" spellcheck="false">
   <div class="err" id="gErr"></div><button class="btn" id="gGo">Continuer</button>`);
-  $("#gGo").onclick=()=>{const u=$("#gUrl").value.trim().replace(/\/$/,""),k=$("#gKey").value.trim();if(!/^https:\/\/.+/.test(u)||k.length<20){$("#gErr").textContent="Valeurs incomplètes.";return}SB_URL=u;SB_KEY=k;LS.set("sb_url",u);LS.set("sb_key",k);location.reload()};
+  $("#gGo").onclick=()=>{const u=normUrl($("#gUrl").value),k=$("#gKey").value.trim();if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(u)){$("#gErr").textContent="L'URL doit ressembler à https://xxxx.supabase.co";return}if(k.length<20||/service_role|sb_secret/.test(k)){$("#gErr").textContent="Colle la clé publique (anon ou publishable).";return}SB_URL=u;SB_KEY=k;LS.set("sb_url",u);LS.set("sb_key",k);location.reload()};
 }
 function gateLogin(){
   const last=LS.get("last_email")||"";
   showGate(`<div class="kicker">Ma watchlist</div><h1>Films <span style="color:var(--gold);font-style:italic">&amp;</span> séries</h1>
   <p>Connecte-toi avec ton e-mail : tu reçois un lien de connexion. Une seule fois par appareil.</p>
   <label>E-mail</label><input class="in" id="gMail" type="email" value="${esc(last)}" placeholder="toi@exemple.fr" autocomplete="email">
-  <div class="err" id="gErr"></div><button class="btn" id="gSend">Recevoir le lien</button>`);
+  <div class="err" id="gErr"></div><button class="btn" id="gSend">Recevoir le lien</button>${CFG.supabaseUrl?"":`<button class="lnk" id="gReset">Modifier l'URL / la clé Supabase</button>`}`);
+  const gr=$("#gReset"); if(gr) gr.onclick=()=>{LS.set("sb_url",null);LS.set("sb_key",null);location.reload()};
   $("#gSend").onclick=async()=>{const em=$("#gMail").value.trim();if(!/.+@.+\..+/.test(em)){$("#gErr").textContent="E-mail invalide.";return}
     $("#gSend").disabled=true;LS.set("last_email",em);
     const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname}});
-    if(error){$("#gSend").disabled=false;$("#gErr").textContent=error.message;return}
+    if(error){$("#gSend").disabled=false;$("#gErr").textContent=/JSON|fetch|Failed/i.test(error.message)?"Supabase ne répond pas à cette adresse : vérifie l'URL du projet (lien ci-dessous).":/rate|limit/i.test(error.message)?"Trop d'e-mails envoyés : réessaie dans quelques minutes.":error.message;return}
     gateCode(em)};
 }
 function gateCode(em){
