@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Films & séries">
 <meta name="theme-color" content="#0B0B0F">
-<script>try{var t=localStorage.getItem("theme")||"dark";if(t==="light"||(t==="auto"&&matchMedia("(prefers-color-scheme: light)").matches))document.documentElement.dataset.theme="light"}catch(e){}</script>
+<script>try{var j=JSON.parse(localStorage.getItem("theme_css")||"null");if(j){var d=document.documentElement;d.dataset.theme=j.mode;d.dataset.skin=j.skin;d.style.cssText=j.css}else{var t=localStorage.getItem("theme");if(t==="light"||t==="clair")d=document.documentElement,d.dataset.theme="light"}}catch(e){}</script>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -423,6 +423,50 @@ html[data-theme=light] .status.ok{color:var(--ok)}
 .sp2{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;flex:none}
 .gate .btn,html[data-theme=light] .gate .btn{background:#fff;color:#0B0B0F}
 html[data-theme=light] .gate{color:#fff}
+
+/* ===== thèmes ===== */
+html[data-skin] body,html[data-skin] button,html[data-skin] input,html[data-skin] select,html[data-skin] textarea{font-family:var(--fb),Inter,system-ui,sans-serif}
+html[data-skin] :is(h1,.sec-t,.ph,.empty b,.sh h2,.hero .tt,.gate h1,.kpi b,.dsh b,.sugh b,.reco .rs b,.stat b,.nb b){font-family:var(--fh),"Plus Jakarta Sans",sans-serif!important}
+html[data-skin] .top{color:var(--ink)}
+html[data-skin] .top:before{background:radial-gradient(closest-side,var(--glow),transparent)}
+html[data-skin] .gear{color:var(--ink)}
+html[data-skin] .tabs button.on,html[data-skin] .chip.on,html[data-skin] .plat .chip.on:not([style]),html[data-skin] .btn,html[data-skin] .sstate button.on{color:var(--onink)}
+html[data-skin] .btn.sec{color:var(--ink)}
+html[data-skin] .btn.red,html[data-skin] .fab,html[data-skin] .rec{background:var(--accent);color:var(--onaccent)}
+html[data-skin] .fab{box-shadow:0 10px 28px -8px color-mix(in srgb,var(--accent) 60%,transparent)}
+html[data-skin] h1 span{color:var(--accent)}
+html[data-skin] .prog i{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+html[data-skin] .prog.done i{background:var(--ok)}
+html[data-skin] .sheet{background:var(--sheet)}
+html[data-skin] .backdrop:after{background:linear-gradient(color-mix(in srgb,var(--sheet) 30%,transparent),color-mix(in srgb,var(--sheet) 25%,transparent) 40%,var(--sheet))}
+html[data-skin] .backdrop.real:after{background:linear-gradient(color-mix(in srgb,var(--sheet) 5%,transparent),color-mix(in srgb,var(--sheet) 60%,transparent) 55%,var(--sheet))}
+html[data-skin] .toast{background:var(--ink);color:var(--onink)}
+html[data-skin] .status{background:var(--accent-soft);color:var(--accent)}
+html[data-skin][data-theme=dark] .status{color:color-mix(in srgb,var(--accent) 70%,#fff)}
+html[data-skin] .status.ok{background:var(--ok-soft);color:var(--ok)}
+html[data-skin] .reco{background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 16%,transparent),color-mix(in srgb,var(--gold) 12%,transparent));border-color:color-mix(in srgb,var(--accent) 28%,transparent)}
+html[data-skin] .reco.off{background:var(--card);border-color:var(--line)}
+html[data-skin] .reco .rs small,html[data-skin] .lnk2,html[data-skin] .btn.ghost,html[data-skin] .danger{color:var(--accent)}
+html[data-skin] .btn.ghost{border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+html[data-skin] .ep.on,html[data-skin] .ck.on{color:var(--bg)}
+html[data-skin] .dbar i{background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 60%,#fff))}
+html[data-skin] .hero .ot{color:var(--muted)}
+html[data-skin] .syn{color:color-mix(in srgb,var(--ink) 78%,var(--bg))}
+html[data-skin] .rc,html[data-skin] .kpi,html[data-skin] .dcard,html[data-skin] .stat{background:var(--card);border-color:var(--line)}
+html[data-skin] .stat{color:var(--muted)}
+html[data-skin=blockbuster] :is(h1,.sec-t,.sh h2,.hero .tt,.dsh b,.sugh b,.gate h1){letter-spacing:.02em!important;font-weight:400!important}
+html[data-skin=blockbuster] h1{font-size:40px}
+html[data-skin=blockbuster] .hero .tt{font-size:32px}
+html[data-skin=terminal] .poster,html[data-skin=terminal] .card .poster{border-radius:4px}
+html[data-skin=terminal] .chip,html[data-skin=terminal] .btn,html[data-skin=terminal] .tabs,html[data-skin=terminal] .tabs button{border-radius:4px}
+html[data-skin=minimal] .card .poster{box-shadow:none;outline:1px solid #E5E5E5}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.th{border:2px solid var(--line);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--card);color:var(--ink);text-align:left;min-height:92px}
+.th.on{box-shadow:0 0 0 2px var(--accent)}
+.thA{font-size:24px;font-weight:700;line-height:1}
+.thd{display:flex;gap:4px}
+.thd i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:0 0 0 1px rgba(127,127,127,.3)}
+.thn{font-size:12px;font-weight:700;line-height:1.15}
 </style>
 </head>
 <body>
@@ -461,7 +505,7 @@ html[data-theme=light] .gate{color:#fff}
 <div class="gate hidden" id="gate"><div class="box" id="gateBox"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=19"></script>
-<script src="app.js?v=19"></script>
+<script src="config.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

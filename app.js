@@ -265,12 +265,13 @@ function recoBlock(it,given){
   </div>`;
 }
 /* ---- suggestions ---- */
-let SUG=(()=>{try{return JSON.parse(LS.get("sugg_v2")||"{}")}catch(e){return {}}})();
+let SUG=(()=>{try{return JSON.parse(LS.get("sugg_v3")||"{}")}catch(e){return {}}})();
 const sugBusy={}, sugProg={};
 function sugDismissed(){try{return new Set(JSON.parse(LS.get("sugg_dismissed")||"[]"))}catch(e){return new Set()}}
-function saveSug(){LS.set("sugg_v2",JSON.stringify(SUG));LS.set("sugg_v1",null)}
+function saveSug(){LS.set("sugg_v3",JSON.stringify(SUG));LS.set("sugg_v2",null);LS.set("sugg_v1",null)}
 function ratingsHash(type){return items.filter(i=>i.type===type&&i.myRating!=null).map(i=>i.tmdbId+":"+i.myRating).sort().join(",")}
 async function pool(arr,n,fn){let i=0;const run=async()=>{while(i<arr.length){const k=i++;await fn(arr[k],k)}};await Promise.all(Array.from({length:Math.min(n,arr.length)},run))}
+const SUGRULE={film:{minYear:1990,minVotes:1500},serie:{minYear:2000,minVotes:400}};
 async function buildSug(type){
   if(sugBusy[type]) return; computeReco();
   const mt=type==="film"?"movie":"tv";
@@ -286,12 +287,28 @@ async function buildSug(type){
         let d; try{d=await tm(`/${mt}/${sd.tmdbId}/recommendations`,{page:String(page)})}catch(e){return}
         (d.results||[]).forEach((r,pos)=>{
           if(own.has(r.id)||dis.has(type+":"+r.id)||r.adult||(r.genre_ids||[]).includes(10770)) return;
-          const c=cand.get(r.id)||{id:r.id,w:0,seeds:[],vote:r.vote_average||0,cnt:r.vote_count||0};
+          const yr=+String(r.release_date||r.first_air_date||"").slice(0,4);
+          if(!yr||yr<SUGRULE[type].minYear||(r.vote_count||0)<SUGRULE[type].minVotes) return;
+          const c=cand.get(r.id)||{id:r.id,w:0,seeds:[],vote:r.vote_average||0,cnt:r.vote_count||0,g:r.genre_ids||[]};
           c.w+=(sd.myRating-2.5)*(1-pos/40); c.seeds.push({t:sd.title,r:sd.myRating}); cand.set(r.id,c);
         });
       }
     });
-    const pre=[...cand.values()].filter(c=>c.cnt>=50).sort((a,b)=>(b.w+b.vote/4)-(a.w+a.vote/4)).slice(0,type==="film"?40:32);
+    // complément : titres populaires et bien notés dans tes genres favoris, dispo en streaming en France
+    const gw={}; [...cand.values()].forEach(c=>c.g.forEach(g=>gw[g]=(gw[g]||0)+c.w));
+    const topG=Object.entries(gw).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+    sugProg[type]="Je cherche aussi parmi les titres populaires de tes genres préférés…"; if(tab==="sugg") renderSugg();
+    for(const g of topG){
+      const dateKey=type==="film"?"primary_release_date.gte":"first_air_date.gte";
+      let d; try{d=await tm(`/discover/${mt}`,{with_genres:g,sort_by:"vote_average.desc","vote_count.gte":String(SUGRULE[type].minVotes*2),[dateKey]:SUGRULE[type].minYear+"-01-01",watch_region:"FR",with_watch_monetization_types:"flatrate",page:"1"})}catch(e){continue}
+      (d.results||[]).forEach((r,pos)=>{
+        if(own.has(r.id)||dis.has(type+":"+r.id)||(r.genre_ids||[]).includes(10770)) return;
+        const c=cand.get(r.id)||{id:r.id,w:0,seeds:[],vote:r.vote_average||0,cnt:r.vote_count||0,g:r.genre_ids||[]};
+        c.w+=0.6*(1-pos/30); cand.set(r.id,c);
+      });
+    }
+    const pop=c=>Math.log10(Math.max(10,c.cnt));
+    const pre=[...cand.values()].sort((a,b)=>(b.w+b.vote/4+pop(b)*.4)-(a.w+a.vote/4+pop(a)*.4)).slice(0,type==="film"?40:32);
     let done=0; const out=[];
     await pool(pre,4,async c=>{
       try{
@@ -299,7 +316,7 @@ async function buildSug(type){
         if(PICK.includes(d.autoPlatform)&&d.autoPlatform!=="Au cinéma"&&d.poster&&(type!=="film"||d.theatrical)){
           const r=predictFor(d,type);
           if(r){const seen=new Set();const because=c.seeds.sort((a,b)=>b.r-a.r).filter(x=>!seen.has(x.t)&&seen.add(x.t)).slice(0,2);
-            out.push({...d,_r:r,_because:because,_rank:r.score+Math.min(3,c.seeds.length)*.12})}
+            out.push({...d,_r:r,_because:because,_rank:r.score+Math.min(3,c.seeds.length)*.12+(pop(c)-3)*.1})}
         }
       }catch(e){}
       sugProg[type]=`J'analyse les candidats… ${++done}/${pre.length}`; if(tab==="sugg") renderSugg();
@@ -322,7 +339,7 @@ function renderSugg(){
     else body=`<div class="grid sgrid">${list.map(c=>`<button class="card" data-sg="${type}:${c.tmdbId}"><div class="poster">${posterHTML(c)}<span class="badge" style="background:${PCOL[c.autoPlatform]||"rgba(20,18,16,.7)"}">${esc(c.autoPlatform)}</span><span class="rec">Pour toi ${fmt(c._r.score)}★</span></div><div class="meta"><div class="t">${esc(c.title)}</div><div class="y">${[c.year,c.genres?.[0]?esc(c.genres[0]):""].filter(Boolean).join(" · ")}</div>${c._because?.length?`<div class="why">Car tu as aimé ${c._because.map(b=>esc(b.t)).join(" et ")}</div>`:""}</div></button>`).join("")}</div>`;
     return `<div class="sugsec"><div class="sugh"><b>${type==="serie"?"Séries":"Films"} pour toi</b>${!busy&&S&&!S.need?`<button class="lnk2" data-sgr="${type}">Actualiser</button>`:""}</div>${body}</div>`;
   };
-  setHTML($("#sugg"),`<div class="rnote" style="margin:0 0 6px">Titres disponibles en streaming en France (films sortis au cinéma uniquement), choisis à partir de tes meilleures notes. Touche une affiche pour l'ajouter ou l'écarter.</div>${sec("serie")}${sec("film")}`);
+  setHTML($("#sugg"),`<div class="rnote" style="margin:0 0 6px">Titres populaires disponibles en streaming en France (films sortis au cinéma depuis 1990, séries depuis 2000), choisis à partir de tes meilleures notes. Touche une affiche pour l'ajouter ou l'écarter.</div>${sec("serie")}${sec("film")}`);
 }
 function findSug(key){const [type,id]=key.split(":");return (SUG[type]?.list||[]).find(c=>String(c.tmdbId)===id)}
 function openSugg(key){
@@ -577,16 +594,43 @@ function bindDetail(it){
 }
 
 /* ---- theme ---- */
-function applyTheme(){const t=LS.get("theme")||"dark";const light=t==="light"||(t==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches);document.documentElement.dataset.theme=light?"light":"dark";const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=light?"#F5F5F7":"#0B0B0F"}
-try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",applyTheme)}catch(e){}
+const FONTSPEC={"Plus Jakarta Sans":"Plus+Jakarta+Sans:wght@500;600;700;800","Inter":"Inter:wght@400;500;600;700;800","DM Serif Display":"DM+Serif+Display","Space Grotesk":"Space+Grotesk:wght@400;500;600;700","Manrope":"Manrope:wght@400;500;600;700;800","Fraunces":"Fraunces:wght@500;600;700;800","Playfair Display":"Playfair+Display:wght@600;700;800","Source Serif 4":"Source+Serif+4:wght@400;600;700","Nunito":"Nunito:wght@400;600;700;800","Outfit":"Outfit:wght@400;500;600;700;800","JetBrains Mono":"JetBrains+Mono:wght@400;500;700;800","Bebas Neue":"Bebas+Neue","Work Sans":"Work+Sans:wght@400;500;600;700"};
+const THEMES=[
+ {id:"nuit",name:"Nuit",mode:"dark",fh:"Plus Jakarta Sans",fb:"Inter",v:{bg:"#0B0B0F",card:"#15151C",card2:"#1D1D26",ink:"#F3F3F6",muted:"#8E8E9C",line:"#262631",accent:"#E5484D",accent2:"#FF7A59",gold:"#F5B83D",ok:"#3DD68C",sheet:"#101016",glow:"rgba(229,72,77,.22)",onink:"#0B0B0F",onaccent:"#fff"}},
+ {id:"clair",name:"Clair",mode:"light",fh:"Plus Jakarta Sans",fb:"Inter",v:{bg:"#F5F5F7",card:"#FFFFFF",card2:"#EEEEF2",ink:"#111116",muted:"#6E6E7A",line:"#E3E3E9",accent:"#E0383E",accent2:"#FF7A59",gold:"#E39B12",ok:"#1E9E5A",sheet:"#FFFFFF",glow:"rgba(224,56,62,.12)",onink:"#FFFFFF",onaccent:"#fff"}},
+ {id:"retro",name:"Cinéma rétro",mode:"dark",fh:"DM Serif Display",fb:"Inter",v:{bg:"#1A1210",card:"#241914",card2:"#2E211A",ink:"#F6EBDD",muted:"#A8957F",line:"#3A2B22",accent:"#C8322F",accent2:"#E2A93B",gold:"#E2A93B",ok:"#86C47F",sheet:"#1E1511",glow:"rgba(226,169,59,.2)",onink:"#1A1210",onaccent:"#fff"}},
+ {id:"neon",name:"Néon",mode:"dark",fh:"Space Grotesk",fb:"Space Grotesk",v:{bg:"#07060D",card:"#110F1C",card2:"#19162A",ink:"#F2F0FF",muted:"#8C87AE",line:"#241F3D",accent:"#FF2E97",accent2:"#00E5FF",gold:"#FFD23F",ok:"#2EF2A0",sheet:"#0B0A15",glow:"rgba(255,46,151,.3)",onink:"#07060D",onaccent:"#fff"}},
+ {id:"ocean",name:"Océan",mode:"dark",fh:"Manrope",fb:"Manrope",v:{bg:"#071521",card:"#0E2233",card2:"#132C41",ink:"#E8F4FB",muted:"#7FA0B5",line:"#1B3A52",accent:"#2EC4B6",accent2:"#4CC9F0",gold:"#FFC857",ok:"#7BE495",sheet:"#0A1B29",glow:"rgba(46,196,182,.24)",onink:"#071521",onaccent:"#04201D"}},
+ {id:"foret",name:"Forêt",mode:"dark",fh:"Fraunces",fb:"Inter",v:{bg:"#0F1A14",card:"#16251C",card2:"#1D3025",ink:"#EEF3EA",muted:"#8FA595",line:"#24392C",accent:"#E9A23B",accent2:"#F2C46D",gold:"#F2C46D",ok:"#8BD17C",sheet:"#122019",glow:"rgba(233,162,59,.2)",onink:"#0F1A14",onaccent:"#1F1404"}},
+ {id:"sunset",name:"Coucher de soleil",mode:"dark",fh:"Outfit",fb:"Outfit",v:{bg:"#1B0F24",card:"#26162F",card2:"#311D3C",ink:"#FFF1E8",muted:"#B79AB0",line:"#3D2549",accent:"#FF6B35",accent2:"#F7B801",gold:"#F7B801",ok:"#6BE3A4",sheet:"#200F2A",glow:"rgba(255,107,53,.3)",onink:"#1B0F24",onaccent:"#fff"}},
+ {id:"blockbuster",name:"Blockbuster",mode:"dark",fh:"Bebas Neue",fb:"Work Sans",v:{bg:"#0D0D0D",card:"#171717",card2:"#202020",ink:"#FFFFFF",muted:"#9A9A9A",line:"#2A2A2A",accent:"#FFC400",accent2:"#FF8A00",gold:"#FFC400",ok:"#4ADE80",sheet:"#121212",glow:"rgba(255,196,0,.16)",onink:"#0D0D0D",onaccent:"#0D0D0D"}},
+ {id:"terminal",name:"Terminal",mode:"dark",fh:"JetBrains Mono",fb:"JetBrains Mono",v:{bg:"#050805",card:"#0B120B",card2:"#111B11",ink:"#C8FACC",muted:"#5E8F62",line:"#163016",accent:"#39FF14",accent2:"#00C853",gold:"#FFE66D",ok:"#39FF14",sheet:"#070B07",glow:"rgba(57,255,20,.14)",onink:"#050805",onaccent:"#050805"}},
+ {id:"papier",name:"Journal",mode:"light",fh:"Playfair Display",fb:"Source Serif 4",v:{bg:"#FAFAF8",card:"#FFFFFF",card2:"#F0F0EC",ink:"#151515",muted:"#6B6B6B",line:"#E2E2DC",accent:"#1F4FD8",accent2:"#5B8CFF",gold:"#D99A1E",ok:"#2E7D4F",sheet:"#FFFFFF",glow:"rgba(31,79,216,.08)",onink:"#FFFFFF",onaccent:"#fff"}},
+ {id:"pastel",name:"Pastel",mode:"light",fh:"Nunito",fb:"Nunito",v:{bg:"#F6F3FF",card:"#FFFFFF",card2:"#EEE9FB",ink:"#2B2540",muted:"#7C7596",line:"#E4DDF5",accent:"#F06292",accent2:"#B388FF",gold:"#FFA726",ok:"#26A69A",sheet:"#FFFFFF",glow:"rgba(179,136,255,.28)",onink:"#FFFFFF",onaccent:"#fff"}},
+ {id:"minimal",name:"Minimal",mode:"light",fh:"Inter",fb:"Inter",v:{bg:"#FFFFFF",card:"#FFFFFF",card2:"#F2F2F2",ink:"#000000",muted:"#737373",line:"#E5E5E5",accent:"#111111",accent2:"#555555",gold:"#F5A623",ok:"#16A34A",sheet:"#FFFFFF",glow:"rgba(0,0,0,0)",onink:"#FFFFFF",onaccent:"#fff"}}
+];
+function themeId(){const t=LS.get("theme")||"nuit";return t==="dark"?"nuit":t==="light"?"clair":t}
+function loadFonts(list){const fams=[...new Set(list)].filter(f=>FONTSPEC[f]);if(!fams.length)return;const href="https://fonts.googleapis.com/css2?"+fams.map(f=>"family="+FONTSPEC[f]).join("&")+"&display=swap";if(document.querySelector(`link[href="${href}"]`))return;const l=document.createElement("link");l.rel="stylesheet";l.href=href;document.head.appendChild(l)}
+function themeCSS(T){const v=T.v;return Object.entries(v).map(([k,x])=>`--${k}:${x}`).join(";")+`;--fh:"${T.fh}";--fb:"${T.fb}";--accent-soft:color-mix(in srgb,${v.accent} 15%,transparent);--ok-soft:color-mix(in srgb,${v.ok} 14%,transparent);--starbg:${v.line};--starline:${v.line};--night:${T.mode==="dark"?v.bg:"#111116"}`}
+function applyTheme(){
+  let id=themeId(); if(id==="auto") id=(window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"clair":"nuit";
+  const T=THEMES.find(t=>t.id===id)||THEMES[0];
+  const de=document.documentElement; de.dataset.theme=T.mode; de.dataset.skin=T.id; de.style.cssText=themeCSS(T);
+  loadFonts([T.fh,T.fb]);
+  LS.set("theme_css",JSON.stringify({mode:T.mode,skin:T.id,css:themeCSS(T)}));
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=T.v.bg;
+}
+try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{if(themeId()==="auto")applyTheme()})}catch(e){}
 /* ---- settings ---- */
 function openSettings(){
   $("#sheetBody")._h=null; mode="settings"; openId=null; setBackdrop(null);
-  const th=LS.get("theme")||"dark";
+  const th=themeId(); loadFonts(THEMES.flatMap(t=>[t.fh,t.fb]));
   $("#sheetBody").innerHTML=`<h2>Réglages</h2>
-  <label class="f">Apparence</label>
-  <div class="seg" id="stTheme"><button data-th="dark" class="${th==="dark"?"on":""}">Sombre</button><button data-th="light" class="${th==="light"?"on":""}">Clair</button><button data-th="auto" class="${th==="auto"?"on":""}">Auto</button></div>
-  <div class="rnote">Auto suit le réglage clair/sombre de ton iPhone.</div>
+  <label class="f">Thème</label>
+  <div class="themes" id="stTheme">${[{id:"auto",name:"Auto",auto:true},...THEMES].map(t=>{const T=t.auto?null:t;return `<button class="th ${th===t.id?"on":""}" data-th="${t.id}" style="${T?`background:${T.v.bg};color:${T.v.ink};border-color:${th===t.id?T.v.accent:T.v.line}`:""}">
+    ${T?`<span class="thA" style="font-family:'${T.fh}'">Aa</span><span class="thd"><i style="background:${T.v.accent}"></i><i style="background:${T.v.accent2}"></i><i style="background:${T.v.gold}"></i></span>`:`<span class="thA">◐</span><span class="thd auto"><i style="background:#0B0B0F"></i><i style="background:#F5F5F7"></i></span>`}
+    <span class="thn" style="${T?`font-family:'${T.fb}'`:""}">${t.name}</span></button>`}).join("")}</div>
+  <div class="rnote">Auto : Nuit ou Clair selon le réglage de ton iPhone.</div>
   <label class="f">Jeton TMDB (lecture)</label>
   <input class="in" id="stTmdb" value="${esc(prefs.tmdb)}" placeholder="eyJhbGciOi…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="rnote">themoviedb.org → Paramètres → API → « Jeton d'accès en lecture à l'API ».</div>
@@ -603,7 +647,7 @@ function openSettings(){
   <div style="height:8px"></div><button class="btn sec" id="stPwGo">Enregistrer le mot de passe</button>
   <div style="height:10px"></div><button class="btn sec" id="stOut">Se déconnecter</button>
   <div class="tmdb"><svg width="34" height="14" viewBox="0 0 34 14"><rect width="34" height="14" rx="3" fill="#0D253F"/><text x="17" y="10.5" text-anchor="middle" font-size="9" font-weight="700" fill="#01B4E4" font-family="Arial">TMDB</text></svg>Cette appli utilise l'API TMDB mais n'est ni approuvée ni certifiée par TMDB. Disponibilités : JustWatch.</div>`;
-  $("#stTheme").onclick=e=>{const b=e.target.closest("[data-th]");if(!b)return;LS.set("theme",b.dataset.th);applyTheme();$("#stTheme").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))};
+  $("#stTheme").onclick=e=>{const b=e.target.closest("[data-th]");if(!b)return;const st=$("#sheet").scrollTop;LS.set("theme",b.dataset.th);applyTheme();openSettings();$("#sheet").scrollTop=st;};
   $("#stSave").onclick=async()=>{prefs.tmdb=cleanTok($("#stTmdb").value);prefs.omdb=$("#stOmdb").value.trim();
     try{if(prefs.tmdb)await tm("/configuration",{});}catch(e){toast(tmErr(e));return}
     await savePrefs();toast("Réglages enregistrés");closeSheet()};
