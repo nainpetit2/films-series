@@ -467,9 +467,29 @@ html[data-skin=minimal] .card .poster{box-shadow:none;outline:1px solid #E5E5E5}
 .thd{display:flex;gap:4px}
 .thd i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:0 0 0 1px rgba(127,127,127,.3)}
 .thn{font-size:12px;font-weight:700;line-height:1.15}
+
+/* ===== écran d'ouverture ===== */
+.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(120% 80% at 50% 30%,#B52A32,#3A0C12);color:#F6EBDD;transition:opacity .5s ease,visibility .5s}
+.splash.hide{opacity:0;visibility:hidden}
+.splash-logo{width:120px;height:120px;border-radius:28%;box-shadow:0 18px 40px -16px rgba(0,0,0,.6);animation:fsPop .7s cubic-bezier(.2,1.4,.4,1) both}
+.splash .fs-cl,.splash .fs-cr{transform-box:view-box;animation:fsOpenL 1s .55s cubic-bezier(.6,0,.2,1) both}
+.splash .fs-cr{animation-name:fsOpenR}
+.splash .fs-screen path{transform-box:fill-box;transform-origin:center;animation:fsPlay .5s 1.35s ease both}
+.splash .sn{font:800 2.1rem/1.1 "Plus Jakarta Sans",Inter,sans-serif;letter-spacing:-.02em;animation:fsRise .6s .9s ease both}
+.splash .sn span{color:#F5B83D}
+.splash .ss{font:500 .95rem Inter,sans-serif;opacity:.75;animation:fsRise .6s 1.05s ease both}
+@keyframes fsPop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes fsOpenL{from{transform:translateX(56px)}to{transform:none}}
+@keyframes fsOpenR{from{transform:translateX(-56px)}to{transform:none}}
+@keyframes fsPlay{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes fsRise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:.99}}
+.splash .ss{animation-name:fsRiseS}
+@keyframes fsRiseS{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:.75}}
+@media (prefers-reduced-motion: reduce){.splash *{animation:none!important}.splash{transition:none}}
 </style>
 </head>
 <body>
+<div class="splash" id="splash" role="presentation"><svg class="splash-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="fsbg" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#D93A41"/><stop offset="1" stop-color="#6E1620"/></linearGradient><clipPath id="fsarch"><path d="M124 420V214a132 132 0 0 1 264 0v206z"/></clipPath></defs><rect width="512" height="512" fill="url(#fsbg)"/><g clip-path="url(#fsarch)"><rect x="110" y="60" width="292" height="370" fill="#2B0A10"/><rect x="110" y="372" width="292" height="60" fill="#3D0F17"/><g class="fs-screen"><rect x="184" y="186" width="144" height="150" rx="12" fill="#FFF3E3"/><path d="M236 225v72l62-36z" fill="#D93A41"/></g><g class="fs-cl"><rect x="110" y="60" width="92" height="372" fill="#8E1F2B"/><rect x="126" y="60" width="11" height="372" fill="#6E1620"/><rect x="150" y="60" width="11" height="372" fill="#6E1620"/><rect x="174" y="60" width="11" height="372" fill="#6E1620"/><rect x="139" y="60" width="6" height="372" fill="#A72A34"/><rect x="163" y="60" width="6" height="372" fill="#A72A34"/><rect x="187" y="60" width="6" height="372" fill="#A72A34"/></g><g class="fs-cr"><rect x="310" y="60" width="92" height="372" fill="#8E1F2B"/><rect x="327" y="60" width="11" height="372" fill="#6E1620"/><rect x="351" y="60" width="11" height="372" fill="#6E1620"/><rect x="375" y="60" width="11" height="372" fill="#6E1620"/><rect x="319" y="60" width="6" height="372" fill="#A72A34"/><rect x="343" y="60" width="6" height="372" fill="#A72A34"/><rect x="367" y="60" width="6" height="372" fill="#A72A34"/></g><path d="M110 60h292v62c-24 16-49 16-73 0-24 16-49 16-73 0-24 16-49 16-73 0-24 16-49 16-73 0z" fill="#B8323B"/><path d="M110 112c24 16 49 16 73 0 24 16 49 16 73 0 24 16 49 16 73 0 24 16 49 16 73 0" fill="none" stroke="#F5B83D" stroke-width="5" opacity=".7"/></g><path d="M116 420V214a140 140 0 0 1 280 0v206" fill="none" stroke="#F6EBDD" stroke-width="16" stroke-linecap="round"/><path d="M188 420h136" stroke="#F5B83D" stroke-width="16" stroke-linecap="round"/></svg><div class="sn">Films <span>&amp;</span> séries</div><div class="ss">Ce soir, on regarde quoi ?</div></div>
 <div class="top">
 <button class="gear" id="gear" aria-label="Réglages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 <header>
@@ -505,7 +525,7 @@ html[data-skin=minimal] .card .poster{box-shadow:none;outline:1px solid #E5E5E5}
 <div class="gate hidden" id="gate"><div class="box" id="gateBox"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=21"></script>
-<script src="app.js?v=21"></script>
+<script src="config.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

@@ -36,6 +36,9 @@ function setKeyed(el,entries){
   while(el.children.length>entries.length) el.lastElementChild.remove();
 }
 function setHTML(el,html){if(el._h!==html){el.innerHTML=html;el._h=html;return true}return false}
+const SPLASH_MIN=2000;
+function hideSplash(){const sp=document.getElementById("splash");if(!sp||sp._closing)return;sp._closing=true;const wait=Math.max(0,SPLASH_MIN-performance.now());setTimeout(()=>{sp.classList.add("hide");setTimeout(()=>sp.remove(),600)},wait)}
+setTimeout(hideSplash,4500);
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("on"),2600)}
 function getItem(id){return items.find(i=>i.id===id)||null}
 function cacheLocal(){LS.set("cache_items",JSON.stringify(items.map(i=>({...i}))))}
@@ -658,7 +661,7 @@ function openSettings(){
 }
 
 /* ================= gate (setup + login) ================= */
-function showGate(html){$("#gate").classList.remove("hidden");$("#gateBox").innerHTML=html}
+function showGate(html){hideSplash();$("#gate").classList.remove("hidden");$("#gateBox").innerHTML=html}
 function hideGate(){$("#gate").classList.add("hidden")}
 function gateSetup(){
   showGate(`<div class="kicker">Configuration</div><h1>Films <span style="color:var(--gold);font-style:italic">&amp;</span> séries</h1>
@@ -749,7 +752,7 @@ $("#fab").onclick=openAdd; $("#gear").onclick=openSettings;
 async function onSignedIn(u){
   user=u; hideGate();
   try{await loadPrefs()}catch(e){}
-  try{await loadAll()}catch(e){$("#banner").textContent="Impossible de charger ta liste : "+(e.message||"erreur");$("#banner").classList.remove("hidden");loaded=true;render()}
+  try{await loadAll();hideSplash()}catch(e){hideSplash();$("#banner").textContent="Impossible de charger ta liste : "+(e.message||"erreur");$("#banner").classList.remove("hidden");loaded=true;render()}
   if(!prefs.tmdb) gateToken();
   else { // refresh stale ongoing series quietly
     const stale=items.filter(i=>i.tmdbId&&(i.keywords===undefined||(i.type==="serie"&&(i.epRuntime===undefined||((i.ongoing!==false||statusOf(i)!=="vu")&&(!i.providersDate||Date.now()-i.providersDate>2*864e5))))))
