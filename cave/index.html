@@ -53,7 +53,7 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(20,25,35,.12)}
 .tabs .n{font-weight:500;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
 
-.lieux{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.lieux{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .lieu{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
 .lieu .nb{font-family:var(--font-display);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
 .lieu .nom{font-size:13px;color:var(--muted)}
@@ -156,6 +156,26 @@ body{background:radial-gradient(120% 60% at 100% 0%,rgba(200,69,95,.10),transpar
 .etat{border-radius:20px}
 @media (prefers-reduced-motion:no-preference){.carte{transition:transform .15s}.carte:active{transform:scale(.99)}}
 
+/* ---- tuiles compactes, Bu, déplacement ---- */
+.lieu{padding:10px 10px 9px}
+.lieu .nb{font-size:22px}
+.lieu .nom{font-size:12px;line-height:1.2}
+.lieu .ico{width:20px;height:20px;top:9px;right:9px}
+.carte .corps{flex:1;min-width:0;display:flex;flex-direction:column}
+.carte .corps .tags{padding-left:62px;margin-top:2px}
+.stepper .bu{width:auto;padding:0 10px;font-size:14px;font-weight:700;gap:4px;display:inline-flex;align-items:center}
+.stepper .bu svg{width:15px;height:15px}
+.tag.move{border:0;font:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.tag.move svg{width:12px;height:12px}
+.toast{display:none;align-items:center;gap:12px}
+.toast.on{display:flex}
+.toast button{background:none;border:0;color:#f3c1cf;font-weight:700;font-size:14px;padding:0}
+.dep-nom{margin:0;color:var(--muted)}
+.dep-lieux{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dep-lieux button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-weight:600;display:flex;align-items:center;gap:8px;text-align:left;color:var(--ink)}
+.dep-lieux button svg{width:20px;height:20px;color:var(--accent);flex:none}
+.dep-lieux button:disabled{opacity:.4}
+
 /* ---- écran de connexion ---- */
 .gate{position:fixed;inset:0;z-index:60;background:radial-gradient(120% 80% at 50% 0%,#8A2445,#3A0B1C);display:none;align-items:center;justify-content:center;padding:24px max(18px,env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom))}
 .gate.on{display:flex}
@@ -207,6 +227,7 @@ html,body{overscroll-behavior-y:none}
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+<div class="voile" id="voile2"><div class="feuille" id="depBox"></div></div>
 <div class="gate" id="gate"><div class="box" id="gateBox"></div></div>
 
 <div class="voile" id="voile">
@@ -266,7 +287,7 @@ html,body{overscroll-behavior-y:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js"></script>
 <script>
-const LIEUX = ["Placard cuisine", "Tiroir cuisine", "Porte-bouteilles", "Garage"];
+const LIEUX = ["Placard cuisine", "Tiroir cuisine", "Frigo", "Porte-bouteilles", "Garage"];
 const COULEURS = [
   {k:"Rouge", c:"var(--rouge)"},
   {k:"Blanc", c:"var(--blanc)"},
@@ -276,6 +297,8 @@ const COULEURS = [
 const TYPES = ["Apéritif", "Digestif", "Bière", "Cidre", "Autre"];
 const BIERES = ["Blonde", "Brune", "Ambrée", "IPA"];
 const ICONES = {
+  "Tous": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+  "Frigo": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M5 9.5h14M8.5 5.5v2M8.5 12.5v3"/></svg>',
   "Placard cuisine": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18"/><path d="M9.5 11v2M14.5 11v2"/></svg>',
   "Tiroir cuisine": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M10 8.5h4M10 15.5h4"/></svg>',
   "Porte-bouteilles": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="2.2"/><circle cx="16" cy="9" r="2.2"/><circle cx="12" cy="15" r="2.2"/></svg>',
@@ -340,9 +363,15 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&l
 const qte = it => (pending[it.id] ? pending[it.id].want : (Number(it.quantite) || 0));
 const couleurDe = k => (COULEURS.find(c => c.k === k) || {c:"#ccc"}).c;
 
-function toast(msg){
-  const t = $("toast"); t.textContent = msg; t.classList.add("on");
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 3200);
+function toast(msg, action){
+  const t = $("toast"); t.textContent = msg;
+  if (action){
+    const b = document.createElement("button"); b.type = "button"; b.textContent = action.label;
+    b.onclick = () => { t.classList.remove("on"); action.fn(); };
+    t.appendChild(b);
+  }
+  t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), action ? 5000 : 3200);
 }
 function errMsg(e){
   const m = (e && e.message) || "";
@@ -382,7 +411,7 @@ function render(){
   $("tab-aperos").setAttribute("aria-selected", S.tab === "aperos");
 
   const items = S.items[S.tab];
-  $("lieux").innerHTML = LIEUX.map(l => {
+  $("lieux").innerHTML = `<button class="lieu" data-lieu="" aria-pressed="${!S.lieu}"><span class="ico">${ICONES.Tous}</span><span class="nb">${somme(items)}</span><span class="nom">Tous</span></button>` + LIEUX.map(l => {
     const n = somme(items.filter(it => it.emplacement === l));
     return `<button class="lieu" data-lieu="${esc(l)}" aria-pressed="${S.lieu === l}"><span class="ico">${ICONES[l] || ""}</span><span class="nb">${n}</span><span class="nom">${esc(l)}</span></button>`;
   }).join("");
@@ -390,11 +419,11 @@ function render(){
   const cEl = $("couleurs");
   if (S.tab === "vins"){
     cEl.style.display = "";
-    cEl.innerHTML = COULEURS.map(c => `<button class="chip" data-couleur="${c.k}" aria-pressed="${S.couleur === c.k}"><span class="dot" style="background:${c.c}"></span>${c.k}</button>`).join("")
+    cEl.innerHTML = `<button class="chip" data-tous="1" aria-pressed="${!S.couleur && !S.garde}">Tous</button>` + COULEURS.map(c => `<button class="chip" data-couleur="${c.k}" aria-pressed="${S.couleur === c.k}"><span class="dot" style="background:${c.c}"></span>${c.k}</button>`).join("")
       + `<button class="chip" data-garde="1" aria-pressed="${S.garde}">À conserver</button>`;
   } else {
     cEl.style.display = "";
-    cEl.innerHTML = TYPES.map(t => `<button class="chip" data-type="${t}" aria-pressed="${S.type === t}">${t}</button>`).join("");
+    cEl.innerHTML = `<button class="chip" data-tous="1" aria-pressed="${!S.type}">Tous</button>` + TYPES.map(t => `<button class="chip" data-type="${t}" aria-pressed="${S.type === t}">${t}</button>`).join("");
   }
 
   const liste = $("liste");
@@ -417,13 +446,13 @@ function render(){
       sous.push(esc(it.type === "Bière" && it.biere ? "Bière " + (it.biere === "IPA" ? "IPA" : it.biere.toLowerCase()) : it.type));
     }
     if (n === 0) sous.push("Plus en stock");
-    const tags = [`<span class="tag">${esc(it.emplacement || "Sans emplacement")}</span>`];
+    const tags = [`<button type="button" class="tag move" data-move="${esc(it.id)}" aria-label="Déplacer">${esc(it.emplacement || "Sans emplacement")}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg></button>`];
     if (S.tab === "vins" && it.conserver) tags.push(`<span class="garde">À conserver</span>`);
     const dot = vignette(it, S.tab);
     return `<div class="carte${n === 0 ? " vide" : ""}">
-      <button class="info" data-edit="${esc(it.id)}" aria-label="Modifier ${esc(it.nom)}">${dot}<span><span class="titre">${esc(it.nom || "Sans nom")}</span>${sous.length ? `<span class="sous">${sous.join(" · ")}</span>` : ""}<span class="tags">${tags.join("")}</span></span></button>
+      <div class="corps"><button class="info" data-edit="${esc(it.id)}" aria-label="Modifier ${esc(it.nom)}">${dot}<span><span class="titre">${esc(it.nom || "Sans nom")}</span>${sous.length ? `<span class="sous">${sous.join(" · ")}</span>` : ""}</span></button><div class="tags">${tags.join("")}</div></div>
       <div class="stepper">
-        <button data-delta="-1" data-id="${esc(it.id)}" aria-label="Sortir une bouteille">−</button>
+        <button class="bu" data-bu="${esc(it.id)}" aria-label="Bouteille bue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10c0 6-1.5 9-5 9s-5-3-5-9ZM12 12v8M8 21h8"/></svg>Bu</button>
         <span class="q">${n}</span>
         <button data-delta="1" data-id="${esc(it.id)}" aria-label="Ajouter une bouteille">+</button>
       </div>
@@ -459,6 +488,77 @@ async function flush(tab, id){
   if (p.want !== val) { flush(tab, id); return; }
   delete pending[id];
   render();
+}
+
+/* ---------- Bu : une bouteille de moins, la fiche disparaît à zéro ---------- */
+async function boire(id){
+  if (!ready) return;
+  const tab = S.tab;
+  const it = S.items[tab].find(x => x.id === id); if (!it) return;
+  if (qte(it) > 1){ changer(id, -1); return; }
+  const p = pending[id]; if (p) clearTimeout(p.t); delete pending[id];
+  const sauvegarde = Object.assign(sansId(it), {quantite: 1});
+  S.items[tab] = S.items[tab].filter(x => x.id !== id); render();
+  const {error} = await sb.from(TABLE).delete().eq("id", id);
+  if (error){ toast(errMsg(error)); charger(); return; }
+  toast(`${it.nom || "Bouteille"} : bue`, {label: "Annuler", fn: async () => {
+    const r = await sb.from(TABLE).insert({kind: KIND[tab], data: sauvegarde});
+    if (r.error) toast(errMsg(r.error)); else charger();
+  }});
+}
+
+/* ---------- Déplacer d'un emplacement à l'autre ---------- */
+const cle = (it, tab) => tab === "vins"
+  ? [String(it.nom||"").trim().toLowerCase(), it.couleur||"", it.millesime||"", it.region||""].join("|")
+  : [String(it.nom||"").trim().toLowerCase(), it.type||"", it.biere||""].join("|");
+let dep = null;
+function ouvrirDeplacer(id){
+  const it = S.items[S.tab].find(x => x.id === id); if (!it || !ready) return;
+  dep = {it, tab: S.tab, n: 1};
+  renderDeplacer();
+  $("voile2").classList.add("on");
+}
+function renderDeplacer(){
+  const {it, n} = dep, total = Math.max(1, qte(it));
+  $("depBox").innerHTML = `<h2>Déplacer</h2>
+    <p class="dep-nom">${esc(it.nom)} · actuellement : <strong>${esc(it.emplacement || "—")}</strong></p>
+    ${total > 1 ? `<div class="champ"><span class="lbl">Combien de bouteilles ?</span><div class="actions">
+      <div class="stepper"><button type="button" id="dMoins" aria-label="Moins">−</button><span class="q">${n}</span><button type="button" id="dPlus" aria-label="Plus">+</button></div>
+      <button type="button" class="btn sec" id="dToutes">Toutes (${total})</button></div></div>` : ""}
+    <div class="champ"><span class="lbl">Vers</span><div class="dep-lieux">${LIEUX.map(l => `<button type="button" data-vers="${esc(l)}" ${l === it.emplacement ? "disabled" : ""}>${ICONES[l] || ""}${esc(l)}</button>`).join("")}</div></div>
+    <div class="actions"><button type="button" class="btn sec" id="dAnnuler" style="flex:1">Annuler</button></div>`;
+  const m = $("dMoins"), p = $("dPlus"), t = $("dToutes");
+  if (m) m.onclick = () => { dep.n = Math.max(1, dep.n - 1); renderDeplacer(); };
+  if (p) p.onclick = () => { dep.n = Math.min(total, dep.n + 1); renderDeplacer(); };
+  if (t) t.onclick = () => { dep.n = total; renderDeplacer(); };
+  $("dAnnuler").onclick = fermerDeplacer;
+  $("depBox").querySelectorAll("[data-vers]").forEach(b => b.onclick = () => deplacer(b.dataset.vers));
+}
+function fermerDeplacer(){ $("voile2").classList.remove("on"); dep = null; }
+async function deplacer(vers){
+  const {it, tab} = dep; const total = qte(it); const n = Math.min(dep.n, Math.max(1, total));
+  fermerDeplacer();
+  const p = pending[it.id]; if (p) clearTimeout(p.t); delete pending[it.id];
+  const now = new Date().toISOString();
+  const meme = S.items[tab].find(x => x.id !== it.id && x.emplacement === vers && cle(x, tab) === cle(it, tab));
+  try {
+    let r;
+    if (n >= total){
+      if (meme){
+        r = await sb.from(TABLE).update({data: Object.assign(sansId(meme), {quantite: qte(meme) + total}), updated_at: now}).eq("id", meme.id); if (r.error) throw r.error;
+        r = await sb.from(TABLE).delete().eq("id", it.id); if (r.error) throw r.error;
+      } else {
+        r = await sb.from(TABLE).update({data: Object.assign(sansId(it), {emplacement: vers, quantite: total}), updated_at: now}).eq("id", it.id); if (r.error) throw r.error;
+      }
+    } else {
+      r = await sb.from(TABLE).update({data: Object.assign(sansId(it), {quantite: total - n}), updated_at: now}).eq("id", it.id); if (r.error) throw r.error;
+      if (meme) r = await sb.from(TABLE).update({data: Object.assign(sansId(meme), {quantite: qte(meme) + n}), updated_at: now}).eq("id", meme.id);
+      else r = await sb.from(TABLE).insert({kind: KIND[tab], data: Object.assign(sansId(it), {emplacement: vers, quantite: n})});
+      if (r.error) throw r.error;
+    }
+    toast(`${n > 1 ? n + " bouteilles déplacées" : "Bouteille déplacée"} vers ${vers}`);
+  } catch(e){ toast(errMsg(e)); }
+  charger();
 }
 
 /* ---------- Formulaire ---------- */
@@ -543,9 +643,10 @@ document.querySelector(".tabs").addEventListener("click", e => {
 });
 $("lieux").addEventListener("click", e => {
   const b = e.target.closest("[data-lieu]"); if (!b) return;
-  S.lieu = S.lieu === b.dataset.lieu ? null : b.dataset.lieu; render();
+  S.lieu = (!b.dataset.lieu || S.lieu === b.dataset.lieu) ? null : b.dataset.lieu; render();
 });
 $("couleurs").addEventListener("click", e => {
+  if (e.target.closest("[data-tous]")){ S.couleur = null; S.garde = false; S.type = null; render(); return; }
   if (e.target.closest("[data-garde]")){ S.garde = !S.garde; render(); return; }
   const t = e.target.closest("[data-type]");
   if (t){ S.type = S.type === t.dataset.type ? null : t.dataset.type; render(); return; }
@@ -554,6 +655,10 @@ $("couleurs").addEventListener("click", e => {
 });
 $("q").addEventListener("input", e => { S.q = e.target.value; render(); });
 $("liste").addEventListener("click", e => {
+  const bu = e.target.closest("[data-bu]");
+  if (bu){ boire(bu.dataset.bu); return; }
+  const mv = e.target.closest("[data-move]");
+  if (mv){ ouvrirDeplacer(mv.dataset.move); return; }
   const d = e.target.closest("[data-delta]");
   if (d){ changer(d.dataset.id, Number(d.dataset.delta)); return; }
   const ed = e.target.closest("[data-edit]");
@@ -573,7 +678,8 @@ $("f-annuler").addEventListener("click", fermer);
 $("f-suppr").addEventListener("click", supprimer);
 $("form").addEventListener("submit", e => { e.preventDefault(); enregistrer(); });
 $("voile").addEventListener("click", e => { if (e.target === $("voile")) fermer(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") fermer(); });
+$("voile2").addEventListener("click", e => { if (e.target === $("voile2")) fermerDeplacer(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape"){ fermer(); if (dep) fermerDeplacer(); } });
 
 /* ---------- Illustration du bandeau ---------- */
 function drawBand(){
