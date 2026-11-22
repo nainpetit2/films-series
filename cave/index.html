@@ -86,7 +86,7 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing
 .racheter ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .racheter li{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:600;font-size:14px}
 .racheter li button{border:1px solid #e8a46a;background:#fff;color:#8a4310;border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700}
-.bas{border:1.5px dashed #d9a477;background:#fff;color:#8a4310;border-radius:6px;padding:0 7px;font-size:12px;font-weight:600;cursor:pointer}
+.bas{border:1.5px dashed #d9a477;background:#fff;color:#8a4310;border-radius:999px;min-height:34px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
 .bas.on{border-style:solid;border-color:#d8711c;background:#d8711c;color:#fff}
 .vig{position:relative}
 .vig .alerte{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#d8711c;box-shadow:0 0 0 2px #fff}
@@ -176,7 +176,7 @@ body{background:radial-gradient(120% 60% at 100% 0%,rgba(200,69,95,.10),transpar
 .lieu .nom{font-size:12px;line-height:1.2}
 .lieu .ico{width:20px;height:20px;top:9px;right:9px}
 .carte .corps{flex:1;min-width:0;display:flex;flex-direction:column}
-.carte .corps .tags{padding-left:62px;margin-top:2px}
+.carte .corps .tags{align-items:center;padding-left:62px;margin-top:2px}
 .stepper .bu{width:auto;padding:0 10px;font-size:14px;font-weight:700;gap:4px;display:inline-flex;align-items:center}
 .stepper .bu svg{width:15px;height:15px}
 .tag.move{border:0;font:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
@@ -274,6 +274,10 @@ html,body{overscroll-behavior-y:none}
       <span class="lbl">Bière</span>
       <div class="seg" id="f-biere"></div>
     </div>
+    <label class="coche apero-only" for="f-bas">
+      <input id="f-bas" type="checkbox">
+      <span>Presque vide (moins de 25 %)<small>Ajoute la bouteille à la liste « À racheter »</small></span>
+    </label>
     <label class="coche vin-only" for="f-conserver">
       <input id="f-conserver" type="checkbox">
       <span>À conserver<small>Bouteille à garder, à ne pas ouvrir pour l'instant</small></span>
@@ -613,6 +617,7 @@ function ouvrir(item){
   $("f-nom").placeholder = vin ? "Ex. Château Lagrange" : "Ex. Pastis, Whisky Nikka, Porto…";
   $("f-millesime").value = item && item.millesime ? item.millesime : "";
   $("f-conserver").checked = !!(item && item.conserver);
+  $("f-bas").checked = !!(item && item.bas);
   $("f-region").innerHTML = `<option value="">—</option>` + REGIONS.map(r => `<option${item && item.region === r ? " selected" : ""}>${esc(r)}</option>`).join("");
   document.querySelectorAll(".vin-only").forEach(el => el.style.display = vin ? "" : "none");
   document.querySelectorAll(".apero-only").forEach(el => el.style.display = vin ? "none" : "");
@@ -647,6 +652,7 @@ async function enregistrer(){
   } else {
     data.type = S.form.type || "";
     data.biere = S.form.type === "Bière" ? (S.form.biere || "") : "";
+    data.bas = $("f-bas").checked;
   }
   $("f-ok").disabled = true;
   try {
