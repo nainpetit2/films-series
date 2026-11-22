@@ -326,7 +326,10 @@ const S = {
 const CFG = window.APP_CONFIG || {};
 const LS = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 const normUrl = u => (u || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
-let SB_URL = normUrl(CFG.supabaseUrl || LS.get("sb_url") || ""), SB_KEY = (CFG.supabaseKey || LS.get("sb_key") || "").trim();
+// Valeurs publiques du projet Supabase (protégées par les règles d'accès de la base).
+const SB_DEFAUT_URL = "https://soybodeolfqjciejonte.supabase.co";
+const SB_DEFAUT_KEY = "sb_publishable_AaxWAax8Di6Pwn3VN_AebQ_Fe5rt6xd";
+let SB_URL = normUrl(CFG.supabaseUrl || SB_DEFAUT_URL), SB_KEY = (CFG.supabaseKey || SB_DEFAUT_KEY).trim();
 let sb = null, user = null, ready = false;
 const TABLE = "cave_items";
 const KIND = {vins: "vin", aperos: "apero"};
