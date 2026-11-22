@@ -190,6 +190,13 @@ body{background:radial-gradient(120% 60% at 100% 0%,rgba(200,69,95,.10),transpar
 .dep-lieux button svg{width:20px;height:20px;color:var(--accent);flex:none}
 .dep-lieux button:disabled{opacity:.4}
 
+/* ---- bouton d'ajout flottant ---- */
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));z-index:12;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:16px;height:54px;padding:0 20px 0 16px;display:flex;align-items:center;gap:6px;box-shadow:0 10px 24px -8px rgba(125,29,63,.65);opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:opacity .2s,transform .2s}
+.fab svg{width:22px;height:22px}
+.fab.on{opacity:1;transform:none;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){.fab{transition:none}}
+.wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+
 /* ---- écran de connexion ---- */
 .gate{position:fixed;inset:0;z-index:60;background:radial-gradient(120% 80% at 50% 0%,#8A2445,#3A0B1C);display:none;align-items:center;justify-content:center;padding:24px max(18px,env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom))}
 .gate.on{display:flex}
@@ -242,6 +249,7 @@ html,body{overscroll-behavior-y:none}
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+<button class="fab" id="fab" type="button" aria-label="Ajouter une bouteille"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
 <div class="voile" id="voile2"><div class="feuille" id="depBox"></div></div>
 <div class="gate" id="gate"><div class="box" id="gateBox"></div></div>
 
@@ -709,6 +717,10 @@ $("liste").addEventListener("click", e => {
   const ed = e.target.closest("[data-edit]");
   if (ed){ const it = S.items[S.tab].find(x => x.id === ed.dataset.edit); if (it && ready) ouvrir(it); }
 });
+$("fab").addEventListener("click", () => $("ajouter").click());
+try {
+  new IntersectionObserver(es => { $("fab").classList.toggle("on", !es[0].isIntersecting); }).observe($("ajouter"));
+} catch(e){ $("fab").classList.add("on"); }
 $("ajouter").addEventListener("click", () => {
   if (!ready){ toast(S.statut || "La cave n'est pas encore disponible."); return; }
   ouvrir(null);
