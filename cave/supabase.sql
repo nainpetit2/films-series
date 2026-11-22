@@ -22,6 +22,9 @@ create table if not exists public.cave_items (
   updated_at timestamptz not null default now()
 );
 alter table public.cave_items enable row level security;
+grant select, insert, update, delete on public.cave_items to authenticated;
+revoke all on public.cave_items from anon;
+revoke all on public.cave_members from anon, authenticated;
 
 drop policy if exists "cave lecture" on public.cave_items;
 drop policy if exists "cave ajout" on public.cave_items;

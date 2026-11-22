@@ -731,7 +731,8 @@ function appliquer(rows){
 async function charger(){
   if (!sb) return;
   const {data, error} = await sb.from(TABLE).select("id,kind,data");
-  if (error){ toast(errMsg(error)); return; }
+  if (error){ S.statut = errMsg(error); toast(S.statut); render(); return; }
+  S.statut = "";
   appliquer(data || []);
   LS.set("cave_cache", JSON.stringify(data || []));
 }
