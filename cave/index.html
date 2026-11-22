@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notre cave</title>
+<meta name="theme-color" content="#7d1d3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Notre cave">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Une colonne mobile : onglets Vins/Apéros, résumé par emplacement, liste de cartes, bouton d'ajout fixe en bas */
+  --bg:#f3f4f6;
+  --surface:#ffffff;
+  --ink:#1f2228;
+  --muted:#6b7079;
+  --line:#e2e4e8;
+  --accent:#7d1d3f;
+  --accent-soft:#f4e7ec;
+  --rouge:#8f1d33;
+  --blanc:#d8bf4f;
+  --rose:#ec9aab;
+  --petillant:#5d7a4f;
+  --ok:#2f7d4f;
+  --font-display:"Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body:"Figtree", -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.4;
+  -webkit-text-size-adjust:100%;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-.01em;margin:0;color:var(--accent);text-wrap:balance}
+.total{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:#e7e9ed;border-radius:12px;padding:4px;gap:4px}
+.tabs button{border:0;background:transparent;padding:10px;border-radius:9px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(20,25,35,.12)}
+.tabs .n{font-weight:500;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
+
+.lieux{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.lieu{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.lieu .nb{font-family:var(--font-display);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.lieu .nom{font-size:13px;color:var(--muted)}
+.lieu[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.lieu[aria-pressed="true"] .nom{color:var(--accent)}
+
+.outils{display:flex;flex-direction:column;gap:10px}
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;font-size:16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:#fff}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.08)}
+
+.liste{display:flex;flex-direction:column;gap:8px}
+.carte{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 12px 14px;display:flex;align-items:center;gap:12px}
+.carte.vide{opacity:.55}
+.carte .info{flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start;background:none;border:0;padding:0;text-align:left}
+.carte .info .dot{margin-top:5px}
+.carte .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.carte .titre{display:block;font-weight:600;overflow-wrap:anywhere}
+.carte .sous{font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.tag{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
+.garde{font-size:12px;font-weight:600;color:#7a5a12;background:#fbf1d6;border-radius:6px;padding:1px 7px}
+.coche{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-weight:600;cursor:pointer}
+.coche input{width:22px;height:22px;accent-color:var(--accent);margin:0}
+.coche small{display:block;font-weight:400;color:var(--muted);font-size:13px}
+.stepper{display:flex;align-items:center;gap:2px;flex:none}
+.stepper button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#f7f8f9;font-size:20px;line-height:1;display:grid;place-items:center}
+.stepper button:active{background:var(--accent-soft)}
+.stepper .q{min-width:30px;text-align:center;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+
+.etat{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:24px 18px;text-align:center;color:var(--muted)}
+.etat strong{display:block;color:var(--ink);margin-bottom:4px}
+
+.ajouter{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;padding:15px 26px;font-size:16px;box-shadow:0 6px 18px rgba(125,29,63,.3)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top));background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);z-index:30;display:none}
+.toast.on{display:block}
+
+.voile{position:fixed;inset:0;background:rgba(20,22,28,.35);display:none;z-index:20;align-items:flex-end;justify-content:center}
+.voile.on{display:flex}
+.feuille{background:var(--surface);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:92%;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.feuille h2{font-family:var(--font-display);font-weight:700;font-size:22px;margin:0}
+.champ{display:flex;flex-direction:column;gap:6px}
+.champ > label,.champ > .lbl{font-size:13px;font-weight:600;color:var(--muted)}
+.champ input,.champ select{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;font-size:16px;width:100%}
+.ligne{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font-size:15px;display:inline-flex;align-items:center;gap:7px}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.actions{display:flex;gap:10px;align-items:center}
+.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:700}
+.btn.prim{background:var(--accent);color:#fff;flex:1}
+.btn.sec{background:#eef0f2}
+.btn.danger{background:transparent;color:#a3283a;padding-left:4px;padding-right:4px}
+.btn.danger.confirm{background:#a3283a;color:#fff;padding:13px 14px}
+.erreur{color:#a3283a;font-size:14px;min-height:1px}
+@media (prefers-reduced-motion:no-preference){
+  .stepper button,.chip,.lieu{transition:background .15s,border-color .15s}
+}
+.marque{display:flex;align-items:center;gap:10px}
+.head-logo{width:38px;height:38px;border-radius:28%;flex:none;box-shadow:0 4px 12px -6px rgba(74,15,36,.6)}
+.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(120% 80% at 50% 30%,#8A2445,#3A0B1C);color:#FBF0F3;transition:opacity .5s ease,visibility .5s}
+.splash.hide{opacity:0;visibility:hidden}
+.splash-logo{width:116px;height:116px;border-radius:28%;box-shadow:0 18px 40px -16px rgba(0,0,0,.6);animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
+.splash .sn{font-family:var(--font-display);font-size:2.2rem;font-weight:700;letter-spacing:-.01em;animation:rise .6s .15s ease both}
+.splash .ss{font-size:.95rem;opacity:.75;animation:rise .6s .3s ease both}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.splash-logo,.splash .sn,.splash .ss{animation:none}.splash{transition:none}}
+
+/* ---- habillage illustré (même famille que « Nos plantes ») ---- */
+body{background:radial-gradient(120% 60% at 100% 0%,rgba(200,69,95,.10),transparent 60%),var(--bg);background-attachment:fixed}
+.wrap{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+.band{position:relative;overflow:hidden;border-radius:24px;background:linear-gradient(160deg,#8a2445,#4a0f24);color:#fbf0f3;min-height:178px;padding:20px 20px 18px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;box-shadow:0 10px 30px -18px rgba(74,15,36,.8)}
+.band canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.band>*:not(canvas){position:relative}
+.band .eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8;font-weight:600}
+.band h1{color:#fbf0f3;font-size:2.1rem;line-height:1.05}
+.band .hb-sub{font-size:.92rem;opacity:.9;max-width:22ch;font-variant-numeric:tabular-nums}
+.band .addb{position:absolute;top:16px;right:16px;background:#fbf0f3;color:var(--accent);border:0;border-radius:999px;padding:9px 15px;font-weight:700;box-shadow:0 4px 14px -6px rgba(0,0,0,.4)}
+.band .addb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.tabs{background:color-mix(in srgb,var(--accent) 9%,#e9e6e8);border:1px solid color-mix(in srgb,var(--accent) 16%,transparent)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;box-shadow:0 4px 12px -6px rgba(125,29,63,.8)}
+.tabs button[aria-selected="true"] .n{color:rgba(255,255,255,.8)}
+.lieu{position:relative;border-radius:18px;padding:12px 14px;box-shadow:0 6px 18px -14px rgba(74,15,36,.55)}
+.lieu .ico{position:absolute;top:10px;right:10px;width:26px;height:26px;color:color-mix(in srgb,var(--accent) 70%,var(--muted));opacity:.85}
+.lieu .ico svg{width:100%;height:100%}
+.lieu .nb{color:var(--accent)}
+.chip{border:1.5px solid color-mix(in srgb,var(--accent) 30%,var(--line));color:var(--accent);font-weight:600}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.carte{border-radius:20px;padding:8px 10px 8px 8px;box-shadow:0 6px 18px -14px rgba(74,15,36,.55)}
+.carte .info{align-items:center;gap:12px}
+.vig{flex:none;width:50px;height:62px;display:grid;place-items:center;border-radius:50% 50% 10px 10px / 34% 34% 10px 10px;background:linear-gradient(170deg,var(--vf),color-mix(in srgb,var(--vf) 55%,#fff))}
+.vig svg{width:28px;height:46px;margin-top:6px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.18))}
+.stepper button{background:color-mix(in srgb,var(--accent) 8%,#fff);border-color:color-mix(in srgb,var(--accent) 22%,var(--line));color:var(--accent);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 12px -6px rgba(125,29,63,.8)}
+.feuille{border-radius:24px 24px 0 0}
+.btn.prim{box-shadow:0 6px 16px -8px rgba(125,29,63,.7)}
+.etat{border-radius:20px}
+@media (prefers-reduced-motion:no-preference){.carte{transition:transform .15s}.carte:active{transform:scale(.99)}}
+
+/* ---- écran de connexion ---- */
+.gate{position:fixed;inset:0;z-index:60;background:radial-gradient(120% 80% at 50% 0%,#8A2445,#3A0B1C);display:none;align-items:center;justify-content:center;padding:24px max(18px,env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom))}
+.gate.on{display:flex}
+.gate .box{background:var(--surface);border-radius:24px;padding:22px 20px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px;box-shadow:0 24px 50px -24px rgba(0,0,0,.6)}
+.gate h2{font-family:var(--font-display);font-weight:700;font-size:26px;margin:0;color:var(--accent)}
+.gate p{margin:0;color:var(--muted);font-size:15px}
+.gate label{font-size:13px;font-weight:600;color:var(--muted);margin-top:4px}
+.gate input{border:1px solid var(--line);border-radius:10px;padding:12px;font-size:16px;width:100%}
+.gate .err{color:#a3283a;font-size:14px;min-height:1px}
+.gate .lnk{background:none;border:0;color:var(--accent);font-weight:600;padding:6px 0;text-align:left}
+.gate code{background:#f4e7ec;border-radius:6px;padding:1px 5px;font-size:13px}
+.compte{text-align:center;color:var(--muted);font-size:13px;padding:8px 0}
+.compte button{background:none;border:0;color:var(--accent);font-weight:600;font-size:13px}
+
+/* ---- confort Safari / iPhone ---- */
+button,.lieu,.chip,.carte .info{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{overscroll-behavior-y:none}
+.tabs{position:sticky;top:calc(8px + env(safe-area-inset-top));z-index:10;background:color-mix(in srgb,#f1e6ea 88%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+@media (max-height:700px){.band{min-height:150px;padding:16px 18px 14px}.band h1{font-size:1.85rem}}
+.feuille{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+</style>
+</head>
+<body>
+<div class="splash" id="splash" role="presentation"><svg class="splash-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="lgbg" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#8A2445"/><stop offset="1" stop-color="#4A0F24"/></linearGradient></defs><rect width="512" height="512" fill="url(#lgbg)"/><path d="M116 428V214a140 140 0 0 1 280 0v214" fill="none" stroke="#F6E6EC" stroke-width="16" stroke-linecap="round"/><path d="M116 300h280M116 360h280" stroke="#F6E6EC" stroke-width="7" opacity=".3"/><path d="M202 420h40a12 12 0 0 0 12-12V292c0-24-22-32-22-58v-36h-20v36c0 26-22 34-22 58v116a12 12 0 0 0 12 12Z" fill="#F3DCE4"/><rect x="212" y="194" width="20" height="18" rx="3" fill="#D9B45A"/><rect x="198" y="322" width="48" height="52" rx="5" fill="#D9B45A"/><path d="M290 326h56c-4 24-14 38-28 38s-24-14-28-38Z" fill="#C8455F"/><path d="M286 296h64c0 44-14 68-32 68s-32-24-32-68Z" fill="none" stroke="#F6E6EC" stroke-width="8" stroke-linejoin="round"/><path d="M318 364v50M298 418h40" stroke="#F6E6EC" stroke-width="8" stroke-linecap="round"/><path d="M160 430h192" stroke="#D9B45A" stroke-width="14" stroke-linecap="round"/></svg>
+<div class="sn">Notre cave</div><div class="ss">Nos vins et apéros, au quotidien</div></div>
+<div class="wrap">
+  <header class="band" id="band">
+    <canvas id="bandArt" aria-hidden="true"></canvas>
+    <button class="addb" id="ajouter" type="button">+ Ajouter</button>
+    <div class="eyebrow" id="today"></div>
+    <h1>Notre cave</h1>
+    <div class="hb-sub" id="total"></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-vins" aria-selected="true" data-tab="vins">Vins<span class="n" id="n-vins"></span></button>
+    <button role="tab" id="tab-aperos" aria-selected="false" data-tab="aperos">Apéros<span class="n" id="n-aperos"></span></button>
+  </div>
+
+  <div class="lieux" id="lieux"></div>
+
+  <div class="outils">
+    <input class="search" id="q" type="search" placeholder="Rechercher un nom, une région, un millésime…" autocomplete="off">
+    <div class="chips" id="couleurs"></div>
+  </div>
+
+  <div class="liste" id="liste"></div>
+  <div class="compte" id="compte"></div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<div class="gate" id="gate"><div class="box" id="gateBox"></div></div>
+
+<div class="voile" id="voile">
+  <form class="feuille" id="form" novalidate>
+    <h2 id="f-titre">Ajouter un vin</h2>
+    <div class="champ">
+      <label for="f-nom">Nom</label>
+      <input id="f-nom" type="text" placeholder="Ex. Château Lagrange" autocomplete="off">
+    </div>
+    <div class="champ vin-only">
+      <span class="lbl">Couleur</span>
+      <div class="seg" id="f-couleur"></div>
+    </div>
+    <div class="ligne vin-only">
+      <div class="champ">
+        <label for="f-millesime">Millésime</label>
+        <input id="f-millesime" type="number" inputmode="numeric" placeholder="2019" min="1900" max="2100">
+      </div>
+      <div class="champ">
+        <label for="f-region">Région</label>
+        <select id="f-region"></select>
+      </div>
+    </div>
+    <div class="champ apero-only">
+      <span class="lbl">Type</span>
+      <div class="seg" id="f-type"></div>
+    </div>
+    <div class="champ apero-only" id="f-biere-champ">
+      <span class="lbl">Bière</span>
+      <div class="seg" id="f-biere"></div>
+    </div>
+    <label class="coche vin-only" for="f-conserver">
+      <input id="f-conserver" type="checkbox">
+      <span>À conserver<small>Bouteille à garder, à ne pas ouvrir pour l'instant</small></span>
+    </label>
+    <div class="champ">
+      <span class="lbl">Emplacement</span>
+      <div class="seg" id="f-lieu"></div>
+    </div>
+    <div class="champ">
+      <span class="lbl">Nombre de bouteilles</span>
+      <div class="stepper">
+        <button type="button" id="f-moins" aria-label="Une bouteille de moins">−</button>
+        <span class="q" id="f-q">1</span>
+        <button type="button" id="f-plus" aria-label="Une bouteille de plus">+</button>
+      </div>
+    </div>
+    <div class="erreur" id="f-erreur"></div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="f-suppr">Supprimer</button>
+      <button type="button" class="btn sec" id="f-annuler">Annuler</button>
+      <button type="submit" class="btn prim" id="f-ok">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../config.js"></script>
+<script>
+const LIEUX = ["Placard cuisine", "Tiroir cuisine", "Porte-bouteilles", "Garage"];
+const COULEURS = [
+  {k:"Rouge", c:"var(--rouge)"},
+  {k:"Blanc", c:"var(--blanc)"},
+  {k:"Rosé", c:"var(--rose)"},
+  {k:"Pétillant", c:"var(--petillant)"}
+];
+const TYPES = ["Apéritif", "Digestif", "Bière", "Cidre", "Autre"];
+const BIERES = ["Blonde", "Brune", "Ambrée", "IPA"];
+const ICONES = {
+  "Placard cuisine": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18"/><path d="M9.5 11v2M14.5 11v2"/></svg>',
+  "Tiroir cuisine": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M10 8.5h4M10 15.5h4"/></svg>',
+  "Porte-bouteilles": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="2.2"/><circle cx="16" cy="9" r="2.2"/><circle cx="12" cy="15" r="2.2"/></svg>',
+  "Garage": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M3 20V10l9-6 9 6v10"/><path d="M7 20v-7h10v7M7 16h10"/></svg>'
+};
+/* Bouteilles illustrées (viewBox 40×64) */
+const FORMES = {
+  vin: "M16 4h8v14c0 6 8 8 8 16v24a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V34c0-8 8-10 8-16Z",
+  petillant: "M16.5 6h7v10c0 7 9.5 9 9.5 18v24a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V34c0-9 9.5-11 9.5-18Z",
+  biere: "M17 4h6v16c0 4 7 6 7 12v26a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3V32c0-6 7-8 7-12Z",
+  cidre: "M17 8h6v10c0 3 8 5 8 11v29a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V29c0-6 8-8 8-11Z",
+  carre: "M17 6h6v8h7a2 2 0 0 1 2 2v42a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V16a2 2 0 0 1 2-2h7Z",
+  haute: "M17 4h6v18c0 3 6 5 6 10v26a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3V32c0-5 6-7 6-10Z"
+};
+const VERRE = {Rouge:"#5a1526", Blanc:"#b9a24a", "Rosé":"#e7a0b0", "Pétillant":"#3b5a33"};
+const FOND = {Rouge:"#f3dfe5", Blanc:"#f5efd6", "Rosé":"#fbe5ea", "Pétillant":"#e5ecdf"};
+const BIERE_C = {Blonde:"#e2b23a", Brune:"#5b3418", "Ambrée":"#b5651d", IPA:"#d08a2a"};
+function vignette(it, tab){
+  let forme = "vin", verre = "#5a1526", fond = "#f3dfe5", etiq = "#f4ead2", bouchon = "#d9b45a";
+  if (tab === "vins"){
+    verre = VERRE[it.couleur] || "#7b6f6a"; fond = FOND[it.couleur] || "#eceae8";
+    if (it.couleur === "Pétillant"){ forme = "petillant"; bouchon = "#d9b45a"; }
+    if (it.couleur === "Rouge") bouchon = "#8f1d33";
+  } else {
+    const t = it.type;
+    if (t === "Bière"){ forme = "biere"; verre = "#6b3d14"; fond = "#f6ead6"; etiq = BIERE_C[it.biere] || "#e2b23a"; bouchon = "#c9c9c9"; }
+    else if (t === "Cidre"){ forme = "cidre"; verre = "#5f7d2a"; fond = "#ebf0d9"; etiq = "#f4e3c0"; bouchon = "#c23a2b"; }
+    else if (t === "Digestif"){ forme = "carre"; verre = "#a3601b"; fond = "#f6e6d3"; etiq = "#f4ead2"; bouchon = "#5b3418"; }
+    else if (t === "Apéritif"){ forme = "haute"; verre = "#d6b84a"; fond = "#f7f0d3"; etiq = "#ffffff"; bouchon = "#2f5d8a"; }
+    else { forme = "haute"; verre = "#8a8f99"; fond = "#eceef1"; etiq = "#ffffff"; bouchon = "#5f6570"; }
+  }
+  const capY = forme === "cidre" ? 8 : (forme === "carre" ? 3 : 4);
+  const cap = forme === "petillant"
+    ? `<path d="M15 3h10v15c-2 1.5-8 1.5-10 0Z" fill="${bouchon}"/>`
+    : `<rect x="16" y="${capY}" width="8" height="7" rx="1.5" fill="${bouchon}"/>`;
+  const labY = forme === "carre" ? 32 : (forme === "cidre" ? 38 : 39);
+  return `<span class="vig" style="--vf:${fond}" aria-hidden="true"><svg viewBox="0 0 40 64"><path d="${FORMES[forme]}" fill="${verre}"/>${cap}<rect x="11" y="${labY}" width="18" height="13" rx="2" fill="${etiq}"/><path d="M12 ${labY-6}v-4M12 ${labY+16}v4" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/></svg></span>`;
+}
+const REGIONS = ["Bordeaux","Bourgogne","Champagne","Vallée du Rhône","Beaujolais","Loire","Alsace","Provence","Languedoc-Roussillon","Sud-Ouest","Jura / Savoie","Corse","Italie","Espagne","Autre pays","Autre"];
+
+const S = {
+  tab: "vins", lieu: null, couleur: null, garde: false, type: null, q: "",
+  items: {vins: [], aperos: []},
+  loaded: {vins: false, aperos: false},
+  edit: null, form: null
+};
+/* ---------- Supabase (même projet que Films & séries) ---------- */
+const CFG = window.APP_CONFIG || {};
+const LS = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+const normUrl = u => (u || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+let SB_URL = normUrl(CFG.supabaseUrl || LS.get("sb_url") || ""), SB_KEY = (CFG.supabaseKey || LS.get("sb_key") || "").trim();
+let sb = null, user = null, ready = false;
+const TABLE = "cave_items";
+const KIND = {vins: "vin", aperos: "apero"};
+const pending = {}; // id -> {want, writing}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const qte = it => (pending[it.id] ? pending[it.id].want : (Number(it.quantite) || 0));
+const couleurDe = k => (COULEURS.find(c => c.k === k) || {c:"#ccc"}).c;
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 3200);
+}
+function errMsg(e){
+  const m = (e && e.message) || "";
+  if (/row-level security|permission|policy/i.test(m)) return "Modification refusée : ce compte n'a pas accès à la cave.";
+  if (/fetch|network|Failed/i.test(m)) return "Pas de connexion. Réessaie dans un instant.";
+  return "Enregistrement impossible pour le moment. Réessaie dans un instant.";
+}
+const sansId = it => { const d = Object.assign({}, it); delete d.id; return d; };
+
+/* ---------- Rendu ---------- */
+function filtrés(){
+  const q = S.q.trim().toLowerCase();
+  return S.items[S.tab].filter(it => {
+    if (S.lieu && it.emplacement !== S.lieu) return false;
+    if (S.tab === "vins" && S.couleur && it.couleur !== S.couleur) return false;
+    if (S.tab === "vins" && S.garde && !it.conserver) return false;
+    if (S.tab === "aperos" && S.type && it.type !== S.type) return false;
+    if (q){
+      const txt = [it.nom, it.region, it.millesime, it.couleur, it.emplacement, it.type, it.biere].join(" ").toLowerCase();
+      if (!txt.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b) => {
+    const va = qte(a) > 0 ? 0 : 1, vb = qte(b) > 0 ? 0 : 1;
+    if (va !== vb) return va - vb;
+    return String(a.nom||"").localeCompare(String(b.nom||""), "fr") || (Number(a.millesime)||0) - (Number(b.millesime)||0);
+  });
+}
+
+function render(){
+  const somme = arr => arr.reduce((n,it) => n + qte(it), 0);
+  const nv = somme(S.items.vins), na = somme(S.items.aperos);
+  $("n-vins").textContent = nv; $("n-aperos").textContent = na;
+  const garde = S.items.vins.filter(it => it.conserver && qte(it) > 0).length;
+  $("total").textContent = (nv + na) + " bouteilles" + (garde ? " · " + garde + " à conserver" : "");
+  $("tab-vins").setAttribute("aria-selected", S.tab === "vins");
+  $("tab-aperos").setAttribute("aria-selected", S.tab === "aperos");
+
+  const items = S.items[S.tab];
+  $("lieux").innerHTML = LIEUX.map(l => {
+    const n = somme(items.filter(it => it.emplacement === l));
+    return `<button class="lieu" data-lieu="${esc(l)}" aria-pressed="${S.lieu === l}"><span class="ico">${ICONES[l] || ""}</span><span class="nb">${n}</span><span class="nom">${esc(l)}</span></button>`;
+  }).join("");
+
+  const cEl = $("couleurs");
+  if (S.tab === "vins"){
+    cEl.style.display = "";
+    cEl.innerHTML = COULEURS.map(c => `<button class="chip" data-couleur="${c.k}" aria-pressed="${S.couleur === c.k}"><span class="dot" style="background:${c.c}"></span>${c.k}</button>`).join("")
+      + `<button class="chip" data-garde="1" aria-pressed="${S.garde}">À conserver</button>`;
+  } else {
+    cEl.style.display = "";
+    cEl.innerHTML = TYPES.map(t => `<button class="chip" data-type="${t}" aria-pressed="${S.type === t}">${t}</button>`).join("");
+  }
+
+  const liste = $("liste");
+  if (!ready && !items.length){ liste.innerHTML = `<div class="etat">${esc(S.statut || "Ouverture de la cave…")}</div>`; return; }
+  if (!S.loaded[S.tab] && !items.length){ liste.innerHTML = `<div class="etat">${esc(S.statut || "Chargement…")}</div>`; return; }
+  const rows = filtrés();
+  if (!items.length){
+    liste.innerHTML = `<div class="etat"><strong>${S.tab === "vins" ? "Aucun vin pour l'instant" : "Aucun apéro pour l'instant"}</strong>Appuyez sur « Ajouter » pour enregistrer vos bouteilles, emplacement par emplacement.</div>`;
+    return;
+  }
+  if (!rows.length){ liste.innerHTML = `<div class="etat">Rien ne correspond à ces filtres.</div>`; return; }
+
+  liste.innerHTML = rows.map(it => {
+    const n = qte(it);
+    const sous = [];
+    if (S.tab === "vins"){
+      if (it.region) sous.push(esc(it.region));
+      if (it.millesime) sous.push(esc(it.millesime));
+    } else if (it.type) {
+      sous.push(esc(it.type === "Bière" && it.biere ? "Bière " + (it.biere === "IPA" ? "IPA" : it.biere.toLowerCase()) : it.type));
+    }
+    if (n === 0) sous.push("Plus en stock");
+    const tags = [`<span class="tag">${esc(it.emplacement || "Sans emplacement")}</span>`];
+    if (S.tab === "vins" && it.conserver) tags.push(`<span class="garde">À conserver</span>`);
+    const dot = vignette(it, S.tab);
+    return `<div class="carte${n === 0 ? " vide" : ""}">
+      <button class="info" data-edit="${esc(it.id)}" aria-label="Modifier ${esc(it.nom)}">${dot}<span><span class="titre">${esc(it.nom || "Sans nom")}</span>${sous.length ? `<span class="sous">${sous.join(" · ")}</span>` : ""}<span class="tags">${tags.join("")}</span></span></button>
+      <div class="stepper">
+        <button data-delta="-1" data-id="${esc(it.id)}" aria-label="Sortir une bouteille">−</button>
+        <span class="q">${n}</span>
+        <button data-delta="1" data-id="${esc(it.id)}" aria-label="Ajouter une bouteille">+</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- Quantités (+/−), écritures regroupées ---------- */
+function changer(id, delta){
+  if (!ready) return;
+  const it = S.items[S.tab].find(x => x.id === id); if (!it) return;
+  const tab = S.tab;
+  const p = pending[id] || (pending[id] = {want: Number(it.quantite) || 0, writing: false});
+  p.want = Math.max(0, p.want + delta);
+  render();
+  clearTimeout(p.t);
+  p.t = setTimeout(() => flush(tab, id), 450);
+}
+async function flush(tab, id){
+  const p = pending[id]; if (!p || p.writing) return;
+  p.writing = true;
+  const val = p.want;
+  try {
+    const it = S.items[tab].find(x => x.id === id);
+    if (it){
+      const data = Object.assign(sansId(it), {quantite: val, maj: Date.now()});
+      const {error} = await sb.from(TABLE).update({data, updated_at: new Date().toISOString()}).eq("id", id);
+      if (error) throw error;
+      it.quantite = val;
+    }
+  } catch(e){ toast(errMsg(e)); }
+  p.writing = false;
+  if (p.want !== val) { flush(tab, id); return; }
+  delete pending[id];
+  render();
+}
+
+/* ---------- Formulaire ---------- */
+function ouvrir(item){
+  S.edit = item || null;
+  const vin = S.tab === "vins";
+  S.form = {
+    couleur: item ? item.couleur || null : "Rouge",
+    lieu: item ? item.emplacement || LIEUX[0] : (S.lieu || LIEUX[0]),
+    q: item ? qte(item) : 1,
+    type: item ? item.type || null : (S.type || "Apéritif"),
+    biere: item ? item.biere || null : "Blonde"
+  };
+  $("f-titre").textContent = item ? (vin ? "Modifier le vin" : "Modifier l'apéro") : (vin ? "Ajouter un vin" : "Ajouter un apéro");
+  $("f-nom").value = item ? item.nom || "" : "";
+  $("f-nom").placeholder = vin ? "Ex. Château Lagrange" : "Ex. Pastis, Whisky Nikka, Porto…";
+  $("f-millesime").value = item && item.millesime ? item.millesime : "";
+  $("f-conserver").checked = !!(item && item.conserver);
+  $("f-region").innerHTML = `<option value="">—</option>` + REGIONS.map(r => `<option${item && item.region === r ? " selected" : ""}>${esc(r)}</option>`).join("");
+  document.querySelectorAll(".vin-only").forEach(el => el.style.display = vin ? "" : "none");
+  document.querySelectorAll(".apero-only").forEach(el => el.style.display = vin ? "none" : "");
+  $("f-suppr").style.display = item ? "" : "none";
+  $("f-suppr").classList.remove("confirm"); $("f-suppr").textContent = "Supprimer";
+  $("f-erreur").textContent = "";
+  renderForm();
+  $("voile").classList.add("on");
+  if (!item) setTimeout(() => $("f-nom").focus(), 50);
+}
+function renderForm(){
+  $("f-couleur").innerHTML = COULEURS.map(c => `<button type="button" data-fc="${c.k}" aria-pressed="${S.form.couleur === c.k}"><span class="dot" style="background:${c.c}"></span>${c.k}</button>`).join("");
+  $("f-lieu").innerHTML = LIEUX.map(l => `<button type="button" data-fl="${esc(l)}" aria-pressed="${S.form.lieu === l}">${esc(l)}</button>`).join("");
+  $("f-q").textContent = S.form.q;
+  $("f-type").innerHTML = TYPES.map(t => `<button type="button" data-ft="${t}" aria-pressed="${S.form.type === t}">${t}</button>`).join("");
+  $("f-biere").innerHTML = BIERES.map(b => `<button type="button" data-fb="${b}" aria-pressed="${S.form.biere === b}">${b}</button>`).join("");
+  $("f-biere-champ").style.display = (S.tab === "aperos" && S.form.type === "Bière") ? "" : "none";
+}
+function fermer(){ $("voile").classList.remove("on"); S.edit = null; }
+
+async function enregistrer(){
+  const nom = $("f-nom").value.trim();
+  if (!nom){ $("f-erreur").textContent = "Indiquez un nom."; $("f-nom").focus(); return; }
+  const vin = S.tab === "vins";
+  const data = {nom, emplacement: S.form.lieu, quantite: S.form.q, maj: Date.now()};
+  if (vin){
+    const m = parseInt($("f-millesime").value, 10);
+    data.couleur = S.form.couleur || "";
+    data.millesime = Number.isFinite(m) ? m : null;
+    data.region = $("f-region").value || "";
+    data.conserver = $("f-conserver").checked;
+  } else {
+    data.type = S.form.type || "";
+    data.biere = S.form.type === "Bière" ? (S.form.biere || "") : "";
+  }
+  $("f-ok").disabled = true;
+  try {
+    let r;
+    if (S.edit){
+      delete pending[S.edit.id];
+      r = await sb.from(TABLE).update({data, updated_at: new Date().toISOString()}).eq("id", S.edit.id);
+    } else {
+      r = await sb.from(TABLE).insert({kind: KIND[S.tab], data});
+    }
+    if (r.error) throw r.error;
+    charger();
+    const etaitEdit = !!S.edit;
+    fermer();
+    toast(etaitEdit ? "Modifié" : "Ajouté");
+  } catch(e){ $("f-erreur").textContent = errMsg(e); }
+  $("f-ok").disabled = false;
+}
+async function supprimer(){
+  const b = $("f-suppr");
+  if (!b.classList.contains("confirm")){ b.classList.add("confirm"); b.textContent = "Confirmer"; return; }
+  try { const r = await sb.from(TABLE).delete().eq("id", S.edit.id); if (r.error) throw r.error; fermer(); toast("Supprimé"); charger(); }
+  catch(e){ $("f-erreur").textContent = errMsg(e); }
+}
+
+/* ---------- Événements ---------- */
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  S.tab = b.dataset.tab; S.couleur = null; S.garde = false; S.type = null; render();
+});
+$("lieux").addEventListener("click", e => {
+  const b = e.target.closest("[data-lieu]"); if (!b) return;
+  S.lieu = S.lieu === b.dataset.lieu ? null : b.dataset.lieu; render();
+});
+$("couleurs").addEventListener("click", e => {
+  if (e.target.closest("[data-garde]")){ S.garde = !S.garde; render(); return; }
+  const t = e.target.closest("[data-type]");
+  if (t){ S.type = S.type === t.dataset.type ? null : t.dataset.type; render(); return; }
+  const b = e.target.closest("[data-couleur]"); if (!b) return;
+  S.couleur = S.couleur === b.dataset.couleur ? null : b.dataset.couleur; render();
+});
+$("q").addEventListener("input", e => { S.q = e.target.value; render(); });
+$("liste").addEventListener("click", e => {
+  const d = e.target.closest("[data-delta]");
+  if (d){ changer(d.dataset.id, Number(d.dataset.delta)); return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed){ const it = S.items[S.tab].find(x => x.id === ed.dataset.edit); if (it && ready) ouvrir(it); }
+});
+$("ajouter").addEventListener("click", () => {
+  if (!ready){ toast(S.statut || "La cave n'est pas encore disponible."); return; }
+  ouvrir(null);
+});
+$("f-couleur").addEventListener("click", e => { const b = e.target.closest("[data-fc]"); if (b){ S.form.couleur = b.dataset.fc; renderForm(); } });
+$("f-type").addEventListener("click", e => { const b = e.target.closest("[data-ft]"); if (b){ S.form.type = b.dataset.ft; renderForm(); } });
+$("f-biere").addEventListener("click", e => { const b = e.target.closest("[data-fb]"); if (b){ S.form.biere = b.dataset.fb; renderForm(); } });
+$("f-lieu").addEventListener("click", e => { const b = e.target.closest("[data-fl]"); if (b){ S.form.lieu = b.dataset.fl; renderForm(); } });
+$("f-moins").addEventListener("click", () => { S.form.q = Math.max(0, S.form.q - 1); renderForm(); });
+$("f-plus").addEventListener("click", () => { S.form.q += 1; renderForm(); });
+$("f-annuler").addEventListener("click", fermer);
+$("f-suppr").addEventListener("click", supprimer);
+$("form").addEventListener("submit", e => { e.preventDefault(); enregistrer(); });
+$("voile").addEventListener("click", e => { if (e.target === $("voile")) fermer(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") fermer(); });
+
+/* ---------- Illustration du bandeau ---------- */
+function drawBand(){
+  const c = $("bandArt"); if (!c) return;
+  const r = c.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
+  c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+  const x = c.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0);
+  const W = r.width, H = r.height; x.clearRect(0,0,W,H);
+  const s = Math.min(1.25, Math.max(.8, H / 180));
+  // voûtes de cave en pierre
+  x.strokeStyle = "rgba(255,255,255,.14)"; x.lineWidth = 1.2;
+  const bays = Math.max(2, Math.round(W / 150)), bw = W / bays, spring = H * .52;
+  for (let i = 0; i < bays; i++){
+    const cx = bw * i + bw / 2, R = bw / 2;
+    x.beginPath(); x.moveTo(bw * i, H); x.lineTo(bw * i, spring); x.arc(cx, spring, R, Math.PI, 0); x.lineTo(bw * (i + 1), H); x.stroke();
+    x.beginPath(); x.arc(cx, spring, R - 12, Math.PI, 0); x.stroke();
+    for (let k = 1; k < 8; k++){ const a = Math.PI + k * Math.PI / 8; x.beginPath(); x.moveTo(cx + Math.cos(a) * (R - 12), spring + Math.sin(a) * (R - 12)); x.lineTo(cx + Math.cos(a) * R, spring + Math.sin(a) * R); x.stroke(); }
+    for (let k = 1; k < 4; k++){ const y = spring + k * (H - spring) / 4; x.beginPath(); x.moveTo(bw * i, y); x.lineTo(bw * i + 10, y); x.moveTo(bw * (i + 1) - 10, y); x.lineTo(bw * (i + 1), y); x.stroke(); }
+  }
+  // casier à bouteilles en bas à droite
+  const Rb = 10.5 * s, gap = Rb * 2.35, cols = Math.max(3, Math.floor((W * .38) / gap)), rows = 4;
+  const x0 = W - 14 - (cols - 1) * gap - Rb, y0 = H - 14 - (rows - 1) * gap * .9;
+  x.save(); x.beginPath(); x.rect(x0 - Rb * 1.5, y0 - Rb * 1.5, W, H); x.clip();
+  x.strokeStyle = "rgba(217,180,90,.35)"; x.lineWidth = 2;
+  for (let k = -rows; k < cols + rows; k++){
+    x.beginPath(); x.moveTo(x0 - Rb + k * gap, y0 - Rb * 1.4); x.lineTo(x0 - Rb + (k + rows) * gap, H + 4); x.stroke();
+    x.beginPath(); x.moveTo(x0 - Rb + (k + rows) * gap, y0 - Rb * 1.4); x.lineTo(x0 - Rb + k * gap, H + 4); x.stroke();
+  }
+  x.restore();
+  const verres = ["#2a0a14", "#3d0f1d", "#1f2e1d", "#4a3514", "#2a0a14", "#3a1b10"];
+  let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++){
+    if (rnd() < .14) continue;
+    const bx = x0 + i * gap + (j % 2 ? gap / 2 : 0), by = y0 + j * gap * .9;
+    if (bx > W - Rb * .6) continue;
+    x.fillStyle = verres[Math.floor(rnd() * verres.length)];
+    x.beginPath(); x.arc(bx, by, Rb, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = "rgba(255,255,255,.28)"; x.lineWidth = 1.4; x.beginPath(); x.arc(bx, by, Rb - 1.5, 0, Math.PI * 2); x.stroke();
+    x.fillStyle = "rgba(0,0,0,.35)"; x.beginPath(); x.arc(bx, by, Rb * .42, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = "rgba(255,255,255,.45)"; x.lineWidth = 1.6; x.beginPath(); x.arc(bx, by, Rb * .72, Math.PI * 1.1, Math.PI * 1.45); x.stroke();
+  }
+  // vigne et grappe suspendues
+  const gx = W * .66, gy = H * .3;
+  x.strokeStyle = "rgba(169,207,138,.7)"; x.lineWidth = 1.6;
+  x.beginPath(); x.moveTo(W * .52, 0); x.bezierCurveTo(W * .58, H * .1, W * .68, H * .1, gx, gy - 12 * s); x.stroke();
+  x.beginPath(); x.moveTo(W * .57, H * .07); x.quadraticCurveTo(W * .53, H * .15, W * .55, H * .2); x.stroke();
+  function feuille(px, py, sz, ang, col){
+    x.save(); x.translate(px, py); x.rotate(ang); x.fillStyle = col; x.globalAlpha = .85;
+    for (const a of [-0.9, 0, 0.9]){ x.save(); x.rotate(a); x.beginPath(); x.moveTo(0,0); x.bezierCurveTo(sz*.45,-sz*.25,sz*.4,-sz*.85,0,-sz); x.bezierCurveTo(-sz*.4,-sz*.85,-sz*.45,-sz*.25,0,0); x.fill(); x.restore(); }
+    x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 1; x.globalAlpha = 1;
+    for (const a of [-0.9, 0, 0.9]){ x.beginPath(); x.moveTo(0,0); x.lineTo(Math.sin(a) * sz * .8, -Math.cos(a) * sz * .8); x.stroke(); }
+    x.restore();
+  }
+  feuille(W * .57, H * .07, 20 * s, -2.4, "#4e9c63");
+  feuille(W * .7, H * .12, 16 * s, 2.2, "#7cb36b");
+  feuille(W * .55, H * .2, 13 * s, 3.4, "#2f7d50");
+  const rg = 5.2 * s, raisins = ["#5b1e5e", "#74306f", "#4a1647", "#682a63"];
+  let n = 0;
+  for (let row = 0; row < 5; row++){
+    const k = 4 - row + (row === 0 ? 0 : 0);
+    const count = Math.max(1, 4 - Math.floor(row * .8));
+    for (let i = 0; i < count; i++){
+      const px = gx + (i - (count - 1) / 2) * rg * 1.9, py = gy + row * rg * 1.65;
+      x.fillStyle = raisins[n++ % 4]; x.beginPath(); x.arc(px, py, rg, 0, Math.PI * 2); x.fill();
+      x.fillStyle = "rgba(255,255,255,.3)"; x.beginPath(); x.arc(px - rg * .35, py - rg * .35, rg * .3, 0, Math.PI * 2); x.fill();
+    }
+  }
+}
+window.addEventListener("resize", () => { clearTimeout(drawBand._t); drawBand._t = setTimeout(drawBand, 120); });
+$("today").textContent = new Date().toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"}).replace(/^./, ch => ch.toUpperCase());
+drawBand();
+try { document.fonts && document.fonts.ready.then(drawBand); } catch(e){}
+
+/* ---------- Écran d'ouverture ---------- */
+(function(){
+  const sp = document.getElementById("splash"); if (!sp) return;
+  let seen = false; try { seen = sessionStorage.getItem("splashSeen") === "1"; sessionStorage.setItem("splashSeen","1"); } catch(e){}
+  const t0 = Date.now(), min = seen ? 0 : 1300;
+  window.hideSplash = () => { const wait = Math.max(0, min - (Date.now() - t0)); setTimeout(() => { sp.classList.add("hide"); setTimeout(() => sp.remove(), 600); }, wait); };
+  if (seen) window.hideSplash();
+  setTimeout(window.hideSplash, 3500);
+})();
+
+/* ---------- Connexion ---------- */
+function showGate(html){ $("gateBox").innerHTML = html; $("gate").classList.add("on"); window.hideSplash && window.hideSplash(); }
+function hideGate(){ $("gate").classList.remove("on"); }
+function sbErr(m){ m = m || ""; return /Invalid login/i.test(m) ? "E-mail ou mot de passe incorrect." : /fetch|Failed|JSON/i.test(m) ? "Supabase ne répond pas : vérifie la connexion." : /rate|seconds/i.test(m) ? "Trop d'e-mails envoyés : réessaie dans quelques minutes." : /at least|weak|short/i.test(m) ? "Mot de passe trop court (6 caractères minimum)." : m; }
+
+function gateSetup(){
+  showGate(`<h2>Notre cave</h2><p>Indique l'adresse et la clé publique de ton projet Supabase (les mêmes que pour Films &amp; séries).</p>
+  <label for="gUrl">URL du projet</label><input id="gUrl" type="url" placeholder="https://xxxx.supabase.co" autocapitalize="off" value="${esc(SB_URL)}">
+  <label for="gKey">Clé publique (anon)</label><input id="gKey" type="text" autocapitalize="off" autocomplete="off">
+  <div class="err" id="gErr"></div><button class="btn prim" id="gGo">Continuer</button>`);
+  $("gGo").onclick = () => {
+    const u = normUrl($("gUrl").value), k = $("gKey").value.trim();
+    if (!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(u)){ $("gErr").textContent = "L'URL doit ressembler à https://xxxx.supabase.co"; return; }
+    if (k.length < 20 || /service_role|sb_secret/.test(k)){ $("gErr").textContent = "Colle la clé publique (anon ou publishable)."; return; }
+    LS.set("sb_url", u); LS.set("sb_key", k); location.reload();
+  };
+}
+
+function gateLogin(mode){
+  mode = mode || "login";
+  const last = LS.get("last_email") || "";
+  showGate(`<h2>Notre cave</h2><p>${mode === "login" ? "Connecte-toi avec le même compte que Films &amp; séries." : "Tu vas recevoir un lien pour choisir un mot de passe. Ouvre-le, puis reviens ici."}</p>
+  <label for="gMail">E-mail</label><input id="gMail" type="email" autocomplete="email" autocapitalize="off" value="${esc(last)}">
+  ${mode === "login" ? `<label for="gPass">Mot de passe</label><input id="gPass" type="password" autocomplete="current-password">` : ""}
+  <div class="err" id="gErr"></div>
+  <button class="btn prim" id="gGo">${mode === "login" ? "Se connecter" : "Recevoir le lien"}</button>
+  <button class="lnk" id="gAlt">${mode === "login" ? "Mot de passe oublié" : "J'ai un mot de passe : me connecter"}</button>`);
+  $("gAlt").onclick = () => gateLogin(mode === "login" ? "forgot" : "login");
+  const go = async () => {
+    const em = $("gMail").value.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(em)){ $("gErr").textContent = "Saisis ton e-mail."; return; }
+    LS.set("last_email", em); $("gGo").disabled = true; $("gErr").textContent = "";
+    let r;
+    if (mode === "login"){
+      r = await sb.auth.signInWithPassword({email: em, password: $("gPass").value});
+      if (!r.error){ user = r.data.user; demarrer(); return; }
+    } else {
+      r = await sb.auth.resetPasswordForEmail(em, {redirectTo: location.origin + location.pathname});
+      if (!r.error){ $("gErr").style.color = "var(--ok)"; $("gErr").textContent = "E-mail envoyé. Ouvre le lien reçu."; $("gGo").disabled = false; return; }
+    }
+    $("gErr").style.color = ""; $("gErr").textContent = sbErr(r.error && r.error.message); $("gGo").disabled = false;
+  };
+  $("gGo").onclick = go;
+  const p = $("gPass"); if (p) p.onkeydown = e => { if (e.key === "Enter") go(); };
+}
+
+function gateNewPassword(){
+  showGate(`<h2>Nouveau mot de passe</h2><p>Choisis ton mot de passe (6 caractères minimum).</p>
+  <label for="gNew">Mot de passe</label><input id="gNew" type="password" autocomplete="new-password">
+  <div class="err" id="gErr"></div><button class="btn prim" id="gGo">Enregistrer</button>`);
+  $("gGo").onclick = async () => {
+    const {error} = await sb.auth.updateUser({password: $("gNew").value});
+    if (error){ $("gErr").textContent = sbErr(error.message); return; }
+    demarrer();
+  };
+}
+
+function gateMessage(titre, texte){
+  showGate(`<h2>${titre}</h2><p>${texte}</p><button class="btn sec" id="gOut">Se déconnecter</button>`);
+  $("gOut").onclick = deconnecter;
+}
+
+async function deconnecter(){ try { await sb.auth.signOut(); } catch(e){} LS.set("cave_cache", null); location.reload(); }
+
+function appliquer(rows){
+  S.items.vins = rows.filter(r => r.kind === "vin").map(r => Object.assign({}, r.data, {id: r.id}));
+  S.items.aperos = rows.filter(r => r.kind === "apero").map(r => Object.assign({}, r.data, {id: r.id}));
+  S.loaded.vins = S.loaded.aperos = true;
+  render();
+}
+
+async function charger(){
+  if (!sb) return;
+  const {data, error} = await sb.from(TABLE).select("id,kind,data");
+  if (error){ toast(errMsg(error)); return; }
+  appliquer(data || []);
+  LS.set("cave_cache", JSON.stringify(data || []));
+}
+
+let abonne = false;
+function abonner(){
+  if (abonne) return; abonne = true;
+  try {
+    sb.channel("cave").on("postgres_changes", {event: "*", schema: "public", table: TABLE}, () => {
+      clearTimeout(abonner._t); abonner._t = setTimeout(charger, 300);
+    }).subscribe();
+  } catch(e){}
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") charger(); });
+}
+
+async function demarrer(){
+  const {data: ok, error} = await sb.rpc("is_cave_member");
+  if (error && /fetch|Failed|network/i.test(error.message || "")){
+    gateMessage("Pas de connexion", "Impossible de joindre la base. Vérifie le réseau puis rouvre l'appli.");
+    return;
+  }
+  if (error){
+    gateMessage("Base pas encore prête", "Il manque les tables de la cave dans Supabase. Exécute le script <code>cave/supabase.sql</code> dans l'éditeur SQL de Supabase, puis recharge cette page.");
+    return;
+  }
+  if (!ok){
+    gateMessage("Accès à la cave", `Ce compte (${esc(user && user.email)}) n'a pas encore accès à la cave. Ajoute son e-mail dans la table <code>cave_members</code> de Supabase.`);
+    return;
+  }
+  hideGate(); ready = true;
+  $("compte").innerHTML = `Connecté : ${esc(user.email)} · <button id="logout" type="button">Se déconnecter</button>`;
+  $("logout").onclick = deconnecter;
+  await charger();
+  window.hideSplash && window.hideSplash();
+  abonner();
+}
+
+(async () => {
+  try { const c = JSON.parse(LS.get("cave_cache") || "null"); if (Array.isArray(c)) appliquer(c); } catch(e){}
+  render();
+  if (!SB_URL || !SB_KEY){ gateSetup(); return; }
+  if (!window.supabase){ gateMessage("Connexion impossible", "La bibliothèque Supabase ne s'est pas chargée. Vérifie la connexion et recharge."); return; }
+  sb = window.supabase.createClient(SB_URL, SB_KEY, {auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}});
+  sb.auth.onAuthStateChange((ev, session) => { if (ev === "PASSWORD_RECOVERY"){ user = session && session.user; gateNewPassword(); } });
+  const {data: {session}} = await sb.auth.getSession();
+  if (location.hash.includes("type=recovery")) return;
+  if (!session){ gateLogin("login"); return; }
+  user = session.user;
+  demarrer();
+})();
+
+if ("serviceWorker" in navigator){ window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+</script>
+</body>
+</html>
