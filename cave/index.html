@@ -87,7 +87,7 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing
 .racheter li{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:600;font-size:14px}
 .racheter li button{border:1px solid #e8a46a;background:#fff;color:#8a4310;border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700}
 .bas{border:1.5px dashed #d9a477;background:#fff;color:#8a4310;border-radius:999px;min-height:34px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
-.bas.on{border-style:solid;border-color:#d8711c;background:#d8711c;color:#fff}
+.bas.on{border-style:solid;border-color:#d8711c;background:#d8711c;color:#fff;min-height:26px;padding:2px 10px;font-size:12px}
 .vig{position:relative}
 .vig .alerte{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#d8711c;box-shadow:0 0 0 2px #fff}
 .garde{font-size:12px;font-weight:600;color:#7a5a12;background:#fbf1d6;border-radius:6px;padding:1px 7px}
@@ -475,7 +475,7 @@ function render(){
     if (n === 0) sous.push("Plus en stock");
     const tags = [`<button type="button" class="tag move" data-move="${esc(it.id)}" aria-label="Déplacer">${esc(it.emplacement || "Sans emplacement")}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg></button>`];
     if (S.tab === "vins" && it.conserver) tags.push(`<span class="garde">À conserver</span>`);
-    if (S.tab === "aperos") tags.push(`<button type="button" class="bas${it.bas ? " on" : ""}" data-bas="${esc(it.id)}" aria-pressed="${!!it.bas}">${it.bas ? "< 25 % · à racheter" : "Presque vide ?"}</button>`);
+    if (S.tab === "aperos") tags.push(`<button type="button" class="bas${it.bas ? " on" : ""}" data-bas="${esc(it.id)}" aria-pressed="${!!it.bas}">${it.bas ? "< 25 %" : "Presque vide ?"}</button>`);
     let dot = vignette(it, S.tab);
     if (S.tab === "aperos" && it.bas) dot = dot.replace("</svg></span>", "</svg><span class=\"alerte\" aria-hidden=\"true\"></span></span>");
     return `<div class="carte${n === 0 ? " vide" : ""}">
