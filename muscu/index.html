@@ -167,16 +167,25 @@ nav.tabs button.on::before{content:"";position:absolute;top:-6px;left:32%;right:
 .pagehead .bsub{font-size:13.5px;opacity:.88;margin-top:4px}
 .splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(120% 80% at 50% 30%,#2C3E58,#141B27);color:#F7F2EA;transition:opacity .5s ease,visibility .5s}
 .splash.hide{opacity:0;visibility:hidden}
-.splash svg{width:112px;height:112px;border-radius:28%;box-shadow:0 18px 40px -16px rgba(0,0,0,.7);animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
-.splash .sn{font-family:var(--display);font-size:34px;font-weight:700;animation:rise .6s .15s ease both}
-.splash .ss{font-size:14px;opacity:.75;animation:rise .6s .3s ease both}
+.splash svg{width:120px;height:120px;border-radius:28%;box-shadow:0 18px 40px -16px rgba(0,0,0,.7);animation:pop .7s cubic-bezier(.2,1.4,.4,1) both}
+.splash .m-sun{transform-box:view-box;animation:mSun 1s .25s cubic-bezier(.2,.8,.3,1) both}
+.splash .m-bar{transform-box:view-box;animation:mLift .7s .55s cubic-bezier(.3,1.5,.5,1) both}
+.splash .m-pl{transform-box:view-box;animation:mPlL .45s 1.05s cubic-bezier(.3,1.4,.5,1) both}
+.splash .m-pr{transform-box:view-box;animation:mPlR .45s 1.05s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes mSun{from{transform:translateY(150px);opacity:.2}to{transform:none;opacity:1}}
+@keyframes mLift{from{transform:translateY(130px);opacity:0}to{transform:none;opacity:1}}
+@keyframes mPlL{from{transform:translateX(-140px);opacity:0}to{transform:none;opacity:1}}
+@keyframes mPlR{from{transform:translateX(140px);opacity:0}to{transform:none;opacity:1}}
+.splash .sn{font-family:var(--display);font-size:34px;font-weight:700;animation:rise .6s 1.2s ease both}
+.splash .ss{font-size:14px;opacity:.75;animation:riseS .6s 1.35s ease both}
+@keyframes riseS{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:.75}}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 @keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion: reduce){.splash svg,.splash .sn,.splash .ss{animation:none}.splash{transition:none}}
+@media (prefers-reduced-motion: reduce){.splash *{animation:none!important}.splash{transition:none}}
 </style>
 </head>
 <body>
-<div class="splash" id="splash" role="presentation"><svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#34496A"/><stop offset="1" stop-color="#18202E"/></linearGradient></defs><rect width="512" height="512" fill="url(#lg)"/><path d="M60 380l120-150 70 80 60-60 142 130z" fill="#2B3B55"/><circle cx="360" cy="170" r="46" fill="#E9915B"/><path d="M150 300h212" stroke="#F4EEE4" stroke-width="18" stroke-linecap="round"/><rect x="100" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="146" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/><rect x="378" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="342" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></svg><div class="sn">Muscu</div><div class="ss">Transformation · nov. → juin</div></div>
+<div class="splash" id="splash" role="presentation"><svg class="splash-logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="mlg" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#34496A"/><stop offset="1" stop-color="#18202E"/></linearGradient><radialGradient id="mglow"><stop offset="0" stop-color="#F7B37E" stop-opacity=".75"/><stop offset="1" stop-color="#F7B37E" stop-opacity="0"/></radialGradient><clipPath id="mclip"><rect width="512" height="512"/></clipPath></defs><g clip-path="url(#mclip)"><rect width="512" height="512" fill="url(#mlg)"/><g class="m-sun"><circle cx="360" cy="170" r="110" fill="url(#mglow)"/><circle cx="360" cy="170" r="46" fill="#E9915B"/></g><path d="M0 400l150-180 80 90 70-70 212 190V512H0z" fill="#2B3B55"/><g class="m-bar"><path d="M150 300h212" stroke="#F4EEE4" stroke-width="18" stroke-linecap="round"/><g class="m-pl"><rect x="100" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="146" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g><g class="m-pr"><rect x="378" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="342" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g></g></g></svg><div class="sn">Muscu</div><div class="ss">Transformation · nov. → juin</div></div>
 <div class="app" id="app"></div>
 <div class="timer" id="timer"><div><div style="font-size:12px;opacity:.8" id="timerLabel">Repos</div><div class="t" id="timerT">0:00</div></div><div style="display:flex;gap:6px"><button id="timerPlus">+15 s</button><button id="timerStop">OK</button></div></div>
 <div class="toast" id="toast"></div>
@@ -595,7 +604,7 @@ document.getElementById("modal").addEventListener("click",function(e){if(e.targe
 
 /* ================= Démarrage ================= */
 render();
-setTimeout(function(){var sp=document.getElementById("splash");if(sp){sp.classList.add("hide");setTimeout(function(){sp.remove();},600);}},900);
+setTimeout(function(){var sp=document.getElementById("splash");if(sp){sp.classList.add("hide");setTimeout(function(){sp.remove();},600);}},2300);
 initSync();
 if(!window.claude&&"serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
