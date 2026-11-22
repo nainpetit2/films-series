@@ -751,7 +751,7 @@ async function demarrer(){
     return;
   }
   if (error){
-    gateMessage("Base pas encore prête", "Il manque les tables de la cave dans Supabase. Exécute le script <code>cave/supabase.sql</code> dans l'éditeur SQL de Supabase, puis recharge cette page.");
+    gateMessage("Base pas encore prête", `Il manque les tables de la cave dans Supabase. Exécute le script <code>cave/supabase.sql</code> dans l'éditeur SQL de Supabase, puis recharge cette page.<br><br><small>Détail : ${esc(error.message || error.code || "")}</small>`);
     return;
   }
   if (!ok){

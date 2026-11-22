@@ -1,5 +1,5 @@
 // Notre cave — service worker : l'appli fonctionne sans réseau une fois ouverte une première fois.
-const CACHE = "cave-v1";
+const CACHE = "cave-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
