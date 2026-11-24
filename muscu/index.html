@@ -647,9 +647,11 @@ function vBilan(){
   var last=lastCompletePer(), cur=curPer();
   if(bilanK==null)bilanK=last>=0?last:cur;
   var k=Math.max(0,Math.min(NPER-1,bilanK)), complete=perComplete(k), R=analyse(k);
+  if(!complete){R.bad=R.bad.filter(function(t){return !/^Seulement/.test(t);});R.odd=R.odd.filter(function(t){return !/^Aucune (pesée|séance)/.test(t);});}
   if(complete){var seen=lsGet(LS_SEEN,-1);if(k>seen)lsSet(LS_SEEN,k);}
   var h=pageHead("Bilan","Tous les 15 jours : ce qui marche, ce qu'on ajuste");
   h+='<div class="weeknav" style="margin-top:12px"><button data-act="bprev" aria-label="Bilan précédent">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">'+fmtLong(perStart(k))+' → '+fmtLong(perEnd(k))+'</div><span class="p pill-'+perWeeks(k)[0].p+'">'+(complete?'Bilan '+(k+1)+'/16':'En cours · définitif le '+fmtLong(perEnd(k)))+'</span></div><button data-act="bnext" aria-label="Bilan suivant">›</button></div>';
+  if(!complete)h+='<div class="note" style="margin-top:12px">Bilan provisoire : il se complète au fil des séances et sera définitif le '+fmtLong(perEnd(k))+'.</div>';
   h+='<div class="bstats"><div><b>'+R.stats.done+'/'+R.stats.planned+'</b><span>séances</span></div><div><b>'+(R.stats.weight!=null?fmtKg(R.stats.weight):'—')+'</b><span>kg moyen</span></div><div><b>'+(R.stats.rate!=null?fmtSigned(R.stats.rate,2):'—')+'</b><span>kg / sem</span></div><div><b>'+R.stats.up+'/5</b><span>charges ↑</span></div></div>';
   function block(cls,title,icon,arr){if(!arr.length)return '';return '<div class="bblock '+cls+'"><div class="bt">'+icon+title+'</div><ul>'+arr.map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div>';}
   h+=block('b-good','Ce qui va bien','<span class="bi">✓</span>',R.good);
