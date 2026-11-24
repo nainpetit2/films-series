@@ -597,8 +597,82 @@ function tagsPlat(txt){
   for (const [tag, mots] of Object.entries(PLAT_MOTS)) if (new RegExp(mots).test(t)) out.push(tag);
   return out;
 }
+/* Guide des appellations et cépages : accords précis, intégrés à l'appli (aucun service externe).
+   [mots reconnus dans le nom, couleur (R rouge, B blanc, P rosé, S pétillant, L liquoreux/doux, * toutes), région, accords, étiquettes] */
+const GUIDE = [
+  ["sauternes|barsac|loupiac|cadillac|sainte-croix-du-mont|monbazillac|montbazillac|saussignac", "L", "Bordeaux", ["Foie gras", "Roquefort, fromages bleus", "Desserts aux fruits jaunes", "Volaille à la crème"], ["foie-gras", "fromage", "dessert", "volaille"]],
+  ["layon|bonnezeaux|quarts de chaume|moelleux|vendanges tardives|selection de grains", "L", "", ["Foie gras", "Tarte aux fruits", "Fromages bleus"], ["foie-gras", "dessert", "fromage"]],
+  ["jurancon", "L", "Sud-Ouest", ["Foie gras", "Desserts aux fruits exotiques", "Fromage de brebis"], ["foie-gras", "dessert", "fromage"]],
+  ["banyuls|maury|rivesaltes|porto|\\bport\\b|pineau|madere|marsala", "*", "", ["Desserts au chocolat", "Fromages bleus", "Foie gras", "Melon"], ["dessert", "fromage", "foie-gras", "apero"]],
+  ["muscat|moscato|asti", "*", "", ["Desserts aux fruits", "Apéritif", "Fromages bleus"], ["dessert", "apero", "fromage"]],
+  ["champagne", "*", "Champagne", ["Apéritif", "Huîtres, fruits de mer", "Saint-Jacques", "Volaille fine"], ["apero", "fruits-de-mer", "poisson", "volaille"]],
+  ["prosecco|cava|spumante|franciacorta|spritz", "*", "Italie", ["Apéritif, spritz", "Antipasti", "Fruits de mer"], ["apero", "fruits-de-mer", "salade"]],
+  ["lambrusco", "*", "Italie", ["Charcuterie italienne", "Pizza", "Lasagnes, bolognaise"], ["charcuterie", "pates-pizza", "apero"]],
+  ["cremant|blanquette de limoux|limoux|clairette de die|vouvray petillant|mousseux", "S", "", ["Apéritif", "Fruits de mer", "Desserts légers"], ["apero", "fruits-de-mer", "dessert"]],
+  ["saint-emilion|st-emilion|saint emilion|st emilion|montagne|lussac|puisseguin", "R", "Bordeaux", ["Agneau rôti", "Côte de bœuf", "Magret de canard", "Cèpes"], ["agneau", "boeuf", "canard", "champignons", "fromage"]],
+  ["pomerol|lalande", "R", "Bordeaux", ["Filet de bœuf", "Canard rôti", "Cèpes, truffe", "Fromages affinés"], ["boeuf", "canard", "champignons", "fromage"]],
+  ["medoc|pauillac|margaux|saint-julien|st-julien|saint-estephe|st-estephe|listrac|moulis", "R", "Bordeaux", ["Côte de bœuf", "Agneau de Pauillac", "Gibier à plume", "Fromages à pâte pressée"], ["boeuf", "agneau", "gibier", "fromage"]],
+  ["pessac|graves", "R", "Bordeaux", ["Entrecôte bordelaise", "Volaille rôtie", "Champignons"], ["boeuf", "volaille", "champignons"]],
+  ["pessac|graves|entre-deux-mers", "B", "Bordeaux", ["Huîtres, fruits de mer", "Poisson en sauce", "Volaille à la crème"], ["fruits-de-mer", "poisson", "volaille"]],
+  ["fronsac|cotes de bourg|blaye|castillon|bordeaux superieur|francs", "R", "Bordeaux", ["Grillades", "Charcuterie", "Fromages"], ["grillade", "boeuf", "charcuterie", "fromage"]],
+  ["chablis", "B", "Bourgogne", ["Huîtres", "Fruits de mer", "Poisson en sauce", "Escargots"], ["fruits-de-mer", "poisson"]],
+  ["meursault|puligny|chassagne|charlemagne|montrachet", "B", "Bourgogne", ["Homard, langoustines", "Volaille à la crème", "Poisson en sauce", "Comté"], ["fruits-de-mer", "volaille", "poisson", "fromage"]],
+  ["pouilly-fuisse|pouilly fuisse|macon|saint-veran|vire-clesse|montagny|rully|bouzeron|aligote", "B", "Bourgogne", ["Poisson", "Volaille", "Fromage de chèvre", "Escargots"], ["poisson", "volaille", "chevre", "apero"]],
+  ["gevrey|chambertin|morey|chambolle|vougeot|vosne|nuits|pommard|volnay|beaune|savigny|aloxe|corton|santenay|mercurey|givry|marsannay|hautes-cotes|irancy|maranges", "R", "Bourgogne", ["Bœuf bourguignon", "Volaille rôtie", "Gibier à plume", "Époisses, fromages affinés"], ["mijote", "volaille", "gibier", "fromage", "boeuf", "champignons"]],
+  ["morgon|moulin-a-vent|moulin a vent|julienas|chenas|fleurie|chiroubles|brouilly|regnie|saint-amour|beaujolais", "R", "Beaujolais", ["Charcuterie lyonnaise", "Volaille", "Andouillette, plats canailles", "Coq au vin"], ["charcuterie", "volaille", "porc", "mijote", "pates-pizza"]],
+  ["chateauneuf", "R", "Vallée du Rhône", ["Gibier, sanglier", "Daube", "Agneau", "Fromages affinés"], ["gibier", "mijote", "agneau", "fromage", "boeuf"]],
+  ["chateauneuf", "B", "Vallée du Rhône", ["Poisson en sauce", "Volaille", "Cuisine provençale"], ["poisson", "volaille", "mediterraneen"]],
+  ["gigondas|vacqueyras|rasteau|cairanne|vinsobres|lirac|beaumes|plan de dieu|seguret|sablet", "R", "Vallée du Rhône", ["Daube provençale", "Agneau aux herbes", "Gibier", "Grillades"], ["mijote", "agneau", "gibier", "grillade", "mediterraneen"]],
+  ["cote-rotie|cote rotie|hermitage|crozes|saint-joseph|st-joseph|cornas|syrah|shiraz", "R", "Vallée du Rhône", ["Côte de bœuf", "Gibier", "Agneau", "Grillades épicées"], ["boeuf", "gibier", "agneau", "grillade"]],
+  ["crozes|saint-joseph|st-joseph|hermitage|saint-peray", "B", "Vallée du Rhône", ["Poisson en sauce", "Volaille", "Fromages"], ["poisson", "volaille", "fromage"]],
+  ["condrieu|viognier", "B", "Vallée du Rhône", ["Cuisine épicée ou asiatique", "Poisson en sauce", "Fromage de chèvre", "Foie gras"], ["epice-asiat", "poisson", "chevre", "foie-gras"]],
+  ["tavel", "P", "Vallée du Rhône", ["Cuisine épicée", "Couscous", "Charcuterie", "Grillades"], ["epice-asiat", "mediterraneen", "charcuterie", "grillade"]],
+  ["cotes du rhone|cotes-du-rhone|ventoux|luberon|costieres|grignan", "R", "Vallée du Rhône", ["Grillades", "Plats mijotés", "Pizza", "Charcuterie"], ["grillade", "mijote", "pates-pizza", "charcuterie"]],
+  ["bandol", "R", "Provence", ["Agneau", "Daube provençale", "Gibier"], ["agneau", "mijote", "gibier", "mediterraneen"]],
+  ["bandol|cotes de provence|coteaux varois|coteaux d'aix|sainte-victoire|la londe|bellet|palette", "P", "Provence", ["Apéritif, tapenade", "Bouillabaisse", "Grillades", "Cuisine méditerranéenne"], ["apero", "mediterraneen", "grillade", "salade", "poisson"]],
+  ["cassis|bellet|palette|cotes de provence|coteaux varois|coteaux d'aix", "B", "Provence", ["Bouillabaisse", "Poisson grillé", "Fruits de mer", "Chèvre"], ["poisson", "fruits-de-mer", "mediterraneen", "chevre"]],
+  ["pic saint-loup|pic saint loup|pic st loup|faugeres|saint-chinian|minervois|corbieres|fitou|larzac|pezenas|languedoc|collioure|roussillon|la clape|montpeyroux", "R", "Languedoc-Roussillon", ["Agneau aux herbes", "Cassoulet", "Grillades", "Gibier"], ["agneau", "canard", "grillade", "gibier", "mijote"]],
+  ["picpoul", "B", "Languedoc-Roussillon", ["Huîtres de Bouzigues", "Moules", "Fruits de mer"], ["fruits-de-mer", "poisson", "apero"]],
+  ["cahors|malbec", "R", "Sud-Ouest", ["Confit de canard", "Cassoulet", "Bœuf grillé", "Truffe"], ["canard", "mijote", "boeuf", "champignons"]],
+  ["madiran|irouleguy|fronton|marcillac|gaillac|bergerac|pecharmant|buzet|marmandais|tannat", "R", "Sud-Ouest", ["Magret, confit de canard", "Cassoulet", "Garbure", "Grillades"], ["canard", "mijote", "grillade", "boeuf"]],
+  ["gascogne|gaillac|pacherenc|bergerac|jurancon sec", "B", "Sud-Ouest", ["Apéritif", "Poisson", "Salades", "Fromage de brebis"], ["apero", "poisson", "salade", "fromage"]],
+  ["sancerre|pouilly-fume|pouilly fume|menetou|quincy|reuilly|sauvignon", "B", "Loire", ["Crottin de Chavignol", "Fruits de mer", "Poisson grillé", "Asperges"], ["chevre", "fruits-de-mer", "poisson", "salade"]],
+  ["sancerre|menetou", "R", "Loire", ["Volaille", "Charcuterie", "Poisson de rivière"], ["volaille", "charcuterie", "poisson"]],
+  ["muscadet|gros-plant", "B", "Loire", ["Huîtres", "Moules marinières", "Fruits de mer"], ["fruits-de-mer", "poisson", "apero"]],
+  ["vouvray|montlouis|savennieres|anjou|saumur|chenin", "B", "Loire", ["Volaille à la crème", "Poisson en sauce", "Fromage de chèvre", "Cuisine asiatique"], ["volaille", "poisson", "chevre", "epice-asiat"]],
+  ["chinon|bourgueil|saumur-champigny|saint-nicolas|anjou|cabernet franc", "R", "Loire", ["Rillettes, charcuterie", "Rôti de porc", "Volaille", "Fromage de chèvre"], ["charcuterie", "porc", "volaille", "chevre"]],
+  ["rose d'anjou|cabernet d'anjou|rose de loire", "P", "Loire", ["Cuisine asiatique", "Charcuterie", "Desserts aux fruits"], ["epice-asiat", "charcuterie", "dessert", "apero"]],
+  ["gewurz", "B", "Alsace", ["Cuisine asiatique épicée", "Munster", "Foie gras"], ["epice-asiat", "fromage", "foie-gras"]],
+  ["riesling", "B", "Alsace", ["Choucroute", "Poisson", "Fruits de mer", "Cuisine asiatique"], ["porc", "poisson", "fruits-de-mer", "epice-asiat"]],
+  ["pinot gris", "B", "Alsace", ["Volaille", "Foie gras", "Cuisine asiatique"], ["volaille", "foie-gras", "epice-asiat"]],
+  ["sylvaner|pinot blanc|edelzwicker|alsace|auxerrois", "B", "Alsace", ["Tarte flambée", "Choucroute", "Quiche"], ["porc", "salade", "apero"]],
+  ["vin jaune|chateau-chalon|chateau chalon", "B", "Jura / Savoie", ["Poulet au vin jaune et morilles", "Comté affiné", "Noix"], ["volaille", "champignons", "fromage"]],
+  ["arbois|cotes du jura|l'etoile|savagnin", "B", "Jura / Savoie", ["Comté", "Volaille aux morilles", "Fondue"], ["fromage", "volaille", "fromage-fondu", "champignons"]],
+  ["apremont|aspremont|abymes|chignin|roussette|altesse|jacquere|crepy|savoie|seyssel|ripaille|marignan", "B", "Jura / Savoie", ["Raclette, fondue", "Tartiflette", "Poissons de lac", "Huîtres"], ["fromage-fondu", "fromage", "poisson", "fruits-de-mer"]],
+  ["mondeuse|persan|poulsard|trousseau", "R", "Jura / Savoie", ["Charcuterie de montagne", "Diots, saucisses", "Fromages de Savoie"], ["charcuterie", "porc", "fromage", "fromage-fondu"]],
+  ["barolo|barbaresco|brunello|amarone|nebbiolo", "R", "Italie", ["Bœuf braisé", "Gibier", "Risotto aux truffes", "Parmesan affiné"], ["mijote", "gibier", "champignons", "fromage", "boeuf"]],
+  ["chianti|sangiovese|montepulciano|valpolicella|nero d'avola|primitivo|barbera|dolcetto", "R", "Italie", ["Pâtes à la tomate", "Pizza", "Charcuterie italienne", "Viandes grillées"], ["pates-pizza", "charcuterie", "grillade", "boeuf"]],
+  ["pinot grigio|soave|vermentino|verdicchio|gavi|falanghina", "B", "Italie", ["Fruits de mer", "Poisson", "Antipasti"], ["fruits-de-mer", "poisson", "apero"]],
+  ["rioja|ribera|tempranillo|priorat|toro", "R", "Espagne", ["Agneau", "Chorizo, jamón", "Grillades"], ["agneau", "charcuterie", "grillade", "boeuf"]],
+  ["albarino|verdejo|rueda|vinho verde", "B", "Espagne", ["Fruits de mer", "Poisson grillé", "Tapas"], ["fruits-de-mer", "poisson", "apero"]],
+  ["pinot noir", "R", "", ["Volaille rôtie", "Saumon", "Champignons", "Fromages doux"], ["volaille", "poisson", "champignons", "fromage"]],
+  ["merlot|cabernet sauvignon|cabernet", "R", "", ["Bœuf grillé", "Agneau", "Fromages à pâte pressée"], ["boeuf", "agneau", "fromage", "grillade"]],
+  ["grenache|carignan|cinsault|mourvedre", "R", "", ["Grillades", "Cuisine méditerranéenne", "Plats mijotés"], ["grillade", "mediterraneen", "mijote"]],
+  ["chardonnay", "B", "", ["Volaille à la crème", "Poisson en sauce", "Fromages"], ["volaille", "poisson", "fromage"]],
+  ["gamay", "R", "", ["Charcuterie", "Volaille", "Pizza"], ["charcuterie", "volaille", "pates-pizza"]]
+];
+const COUL_CODE = {"Rouge": "R", "Blanc": "B", "Rosé": "P", "Pétillant": "S"};
+function guideVin(it){
+  const n = norm(it.nom), c = COUL_CODE[it.couleur] || "";
+  for (const g of GUIDE){
+    if (!new RegExp(g[0]).test(n)) continue;
+    if (g[1] === "*" || g[1] === "L" || g[1] === c) return {region: g[2], accords: g[3], tags: g[4], mot: (n.match(new RegExp(g[0])) || [""])[0]};
+  }
+  return null;
+}
 function tagsVin(it){
   if (Array.isArray(it.tags) && it.tags.length) return it.tags;
+  const g = guideVin(it); if (g) return g.tags;
   const r = norm(it.region), n = norm(it.nom), c = it.couleur, T = new Set();
   const add = (...a) => a.forEach(x => T.add(x));
   if (/monbazillac|montbazillac|sauternes|jurancon|loupiac|layon|barsac|vendanges tardives|muscat|liquoreux|moelleux/.test(n)){ add("foie-gras", "dessert", "fromage"); return [...T]; }
@@ -628,7 +702,7 @@ function tagsVin(it){
   } else add("apero");
   return [...T];
 }
-const accordsVin = it => (Array.isArray(it.accords) && it.accords.length) ? it.accords : tagsVin(it).slice(0, 5).map(t => ACC_LIB[t]).filter(Boolean);
+const accordsVin = it => { if (Array.isArray(it.accords) && it.accords.length) return it.accords; const g = guideVin(it); return g ? g.accords : tagsVin(it).slice(0, 5).map(t => ACC_LIB[t]).filter(Boolean); };
 
 function chercherAccords(){
   const txt = $("plat").value, tags = new Set(tagsPlat(txt));
@@ -655,6 +729,18 @@ function chercherAccords(){
 }
 function ouvrirAccords(){ S.platTags = new Set(); $("plat").value = ""; chercherAccords(); $("voile3").classList.add("on"); setTimeout(() => $("plat").focus(), 60); }
 function fermerAccords(){ $("voile3").classList.remove("on"); }
+
+function majAccordsForm(){
+  const fa = $("f-accords");
+  if (S.tab !== "vins"){ fa.hidden = true; fa.innerHTML = ""; return; }
+  const base = S.formItem && S.formItem.accords && norm($("f-nom").value) === norm(S.formItem.nom) ? S.formItem : {};
+  const tmp = Object.assign({}, base, {nom: $("f-nom").value, couleur: S.form && S.form.couleur, region: $("f-region").value});
+  if (!tmp.nom.trim()){ fa.hidden = true; fa.innerHTML = ""; return; }
+  const g = guideVin(tmp);
+  if (g && g.region && !$("f-region").value && [...$("f-region").options].some(o => o.value === g.region)) $("f-region").value = g.region;
+  fa.hidden = false;
+  fa.innerHTML = `<h3>Accords conseillés${g && !base.accords ? " · " + esc(g.mot) : ""}</h3><ul>${accordsVin(tmp).map(a => `<li>${esc(a)}</li>`).join("")}</ul>`;
+}
 
 /* ---------- Apéros presque vides ---------- */
 async function marquerBas(id, valeur){
@@ -748,9 +834,7 @@ function ouvrir(item){
     type: item ? item.type || null : (S.type || "Apéritif"),
     biere: item ? item.biere || null : "Blonde"
   };
-  const fa = $("f-accords");
-  if (vin && item){ fa.hidden = false; fa.innerHTML = `<h3>Accords conseillés</h3><ul>${accordsVin(item).map(a => `<li>${esc(a)}</li>`).join("")}</ul>`; }
-  else { fa.hidden = true; fa.innerHTML = ""; }
+  S.formItem = item || null;
   $("f-titre").textContent = item ? (vin ? "Modifier le vin" : "Modifier l'apéro") : (vin ? "Ajouter un vin" : "Ajouter un apéro");
   $("f-nom").value = item ? item.nom || "" : "";
   $("f-nom").placeholder = vin ? "Ex. Château Lagrange" : "Ex. Pastis, Whisky Nikka, Porto…";
@@ -764,6 +848,7 @@ function ouvrir(item){
   $("f-suppr").classList.remove("confirm"); $("f-suppr").textContent = "Supprimer";
   $("f-erreur").textContent = "";
   renderForm();
+  majAccordsForm();
   $("voile").classList.add("on");
   if (!item) setTimeout(() => $("f-nom").focus(), 50);
 }
@@ -856,7 +941,7 @@ $("ajouter").addEventListener("click", () => {
   if (!ready){ toast(S.statut || "La cave n'est pas encore disponible."); return; }
   ouvrir(null);
 });
-$("f-couleur").addEventListener("click", e => { const b = e.target.closest("[data-fc]"); if (b){ S.form.couleur = b.dataset.fc; renderForm(); } });
+$("f-couleur").addEventListener("click", e => { const b = e.target.closest("[data-fc]"); if (b){ S.form.couleur = b.dataset.fc; renderForm(); majAccordsForm(); } });
 $("f-type").addEventListener("click", e => { const b = e.target.closest("[data-ft]"); if (b){ S.form.type = b.dataset.ft; renderForm(); } });
 $("f-biere").addEventListener("click", e => { const b = e.target.closest("[data-fb]"); if (b){ S.form.biere = b.dataset.fb; renderForm(); } });
 $("f-lieu").addEventListener("click", e => { const b = e.target.closest("[data-fl]"); if (b){ S.form.lieu = b.dataset.fl; renderForm(); } });
@@ -867,6 +952,8 @@ $("f-suppr").addEventListener("click", supprimer);
 $("form").addEventListener("submit", e => { e.preventDefault(); enregistrer(); });
 $("voile").addEventListener("click", e => { if (e.target === $("voile")) fermer(); });
 $("accordBtn").addEventListener("click", ouvrirAccords);
+$("f-nom").addEventListener("input", () => { clearTimeout(majAccordsForm._t); majAccordsForm._t = setTimeout(majAccordsForm, 250); });
+$("f-region").addEventListener("change", majAccordsForm);
 $("accFermer").addEventListener("click", fermerAccords);
 $("voile3").addEventListener("click", e => { if (e.target === $("voile3")) fermerAccords(); });
 $("plat").addEventListener("input", chercherAccords);
