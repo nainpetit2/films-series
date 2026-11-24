@@ -71,7 +71,7 @@ header.top{display:flex;justify-content:space-between;align-items:center;gap:8px
 .sep{width:1px;align-self:stretch;background:var(--line);margin:18px 2px 0}
 .donebtn{width:100%;height:54px;border-radius:16px;background:var(--text);color:#fff;font-weight:700;font-size:16px;margin-top:6px}
 .donebtn.is{background:var(--green)}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(var(--safe-b) + 6px);z-index:10}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(var(--safe-b) + 6px);z-index:10}
 nav.tabs button{height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;color:#A29D93}
 nav.tabs button.on{color:var(--text)}
 nav.tabs svg{width:22px;height:22px}
@@ -182,6 +182,20 @@ nav.tabs button.on::before{content:"";position:absolute;top:-6px;left:32%;right:
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 @keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion: reduce){.splash *{animation:none!important}.splash{transition:none}}
+
+.bstats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0 12px}
+.bstats div{background:var(--card);border-radius:16px;padding:10px 4px;text-align:center;box-shadow:var(--shadow);border:1px solid rgba(229,222,211,.7)}
+.bstats b{display:block;font-family:var(--display);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.bstats span{font-size:11px;color:var(--muted);font-weight:600}
+.bblock{background:var(--card);border-radius:22px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid rgba(229,222,211,.7)}
+.bblock .bt{font-family:var(--display);font-weight:700;font-size:18px;display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.bblock .bi{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:var(--body);font-size:14px;font-weight:800;flex:none}
+.bblock ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;font-size:14.5px;line-height:1.45}
+.b-good .bi{background:var(--green-bg);color:var(--green)} .b-bad .bi{background:var(--orange-bg);color:var(--orange)}
+.b-change .bi{background:var(--blue-bg);color:var(--blue)} .b-odd .bi{background:#F4E5E5;color:#B23B3B} .b-next .bi{background:var(--card2);color:var(--muted)}
+.b-change{border-color:rgba(46,91,158,.25)}
+nav.tabs button.new::after{content:"";position:absolute;top:6px;left:calc(50% + 8px);width:8px;height:8px;border-radius:50%;background:var(--accent)}
+nav.tabs button{font-size:10.5px}
 </style>
 </head>
 <body>
@@ -194,6 +208,7 @@ nav.tabs button.on::before{content:"";position:absolute;top:-6px;left:32%;right:
   <button data-tab="seance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Séance</button>
   <button data-tab="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendrier</button>
   <button data-tab="mes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Mesures</button>
+  <button data-tab="bilan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4M9 17h6"/></svg>Bilan</button>
   <button data-tab="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Infos</button>
 </nav>
 <script>
@@ -376,10 +391,11 @@ function render(){
   if(state.tab==="seance")h+=vSeance();
   else if(state.tab==="cal")h+=vCal();
   else if(state.tab==="mes")h+=vMes();
+  else if(state.tab==="bilan")h+=vBilan();
   else h+=vInfo();
   app.innerHTML=h;
   Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"),function(b){b.classList.toggle("on",b.getAttribute("data-tab")===state.tab);});
-  setSync();
+  setSync();bilanBadge();
   if(state.tab==="mes")drawChart();
 }
 var NOTE={
@@ -517,6 +533,135 @@ function vInfo(){
   return h;
 }
 
+/* ================= Bilans tous les 15 jours ================= */
+var LS_SEEN="muscu_jt_bilan_seen_v1";
+var KEYLIFTS=[["HA","A1","Développé couché","développé couché haltères"],["HA","A2","Rowing barre","rowing haltère 1 bras lourd"],["J","1","Squat","squat avec pause de 2 s en bas"],["J","2","RDL","RDL aux haltères"],["HB","A1","Développé militaire","développé haltères assis"]];
+var NPER=16;
+function perWeeks(k){return [WEEKS[2*k],WEEKS[2*k+1]];}
+function perStart(k){return WEEKS[2*k].date;}
+function perEnd(k){var d=new Date(WEEKS[2*k+1].date.getTime());d.setDate(d.getDate()+6);return d;}
+function perComplete(k){var t=new Date();t.setHours(0,0,0,0);var e=perEnd(k);e.setHours(0,0,0,0);return t>=e;}
+function curPer(){return Math.floor(todayWeekIdx()/2);}
+function lastCompletePer(){for(var k=NPER-1;k>=0;k--)if(perComplete(k))return k;return -1;}
+function bestSet(x){var best=null;(x.reps||[]).forEach(function(r){var n=num(r),kg=num(x.kg);if(n==null||kg==null)return;var e=kg*(1+n/30);if(!best||e>best.e)best={e:e,kg:kg,r:n};});return best;}
+function liftLogs(s,id,uptoWi){var out=[];var e=SESS[s].ex.filter(function(z){return z.id===id;})[0];for(var i=0;i<=uptoWi&&i<WEEKS.length;i++){var w=WEEKS[i];if(w.p==="R"||w.p==="D")continue;var x=exData(getLog(w.key,s),e);if(filled(x)){var b=bestSet(x);if(b)out.push({wi:i,x:x,b:b});}}return out;}
+function wAvgWeek(i){var m=DATA.meas[WEEKS[i].key];return m?avgW(m):null;}
+function lastTaille(uptoWi,fromWi){for(var i=uptoWi;i>=(fromWi||0);i--){var m=DATA.meas[WEEKS[i].key];if(m&&num(m.taille)!=null)return {wi:i,v:num(m.taille)};}return null;}
+function fmtSigned(v,d){var r=Math.round(v*Math.pow(10,d))/Math.pow(10,d);var s=Math.abs(r).toString().replace(".",",");return (r>0?"+":r<0?"−":"")+s;}
+function analyse(k){
+  var wk=perWeeks(k), a=wk[0].i, b=wk[1].i;
+  var base=wk[0].p==="D"?wk[1].base:wk[0].base; if(base==="R")base="C";
+  var R={k:k,good:[],bad:[],change:[],odd:[],next:[],stats:{}};
+  // assiduité
+  var done=0,planned=0,legsMissed=0,emptyDone=0;
+  wk.forEach(function(w){SESS_ORDER.forEach(function(s){planned++;var l=getLog(w.key,s);if(l&&l.done){done++;var any=SESS[s].ex.some(function(e){return filled(exData(l,e));});if(!any)emptyDone++;}else if(s==="J")legsMissed++;});});
+  R.stats.done=done;R.stats.planned=planned;
+  if(done>=7)R.good.push("Assiduité au top : "+done+"/"+planned+" séances.");
+  else if(done>=6)R.good.push("Bonne assiduité : "+done+"/"+planned+" séances (le minimum visé est 6).");
+  else R.bad.push("Seulement "+done+"/"+planned+" séances. En dessous de 6 sur 15 jours, la progression ralentit nettement.");
+  if(legsMissed>0&&done>0)R.bad.push("Séance Jambes sautée "+legsMissed+" fois. C'est celle à garder : saute plutôt Haut C.");
+  if(emptyDone>0)R.odd.push(emptyDone+" séance"+(emptyDone>1?"s":"")+" marquée"+(emptyDone>1?"s":"")+" faite"+(emptyDone>1?"s":"")+" sans aucune charge notée : l'appli ne peut pas te proposer les bonnes charges.");
+  // poids
+  var wa=[wAvgWeek(a),wAvgWeek(b)].filter(function(v){return v!=null;});
+  var prev=(k>0)?[wAvgWeek(a-2),wAvgWeek(a-1)].filter(function(v){return v!=null;}):[];
+  var mean=function(arr){return arr.reduce(function(x,y){return x+y;},0)/arr.length;};
+  var rate=null;
+  if(wa.length&&prev.length){rate=(mean(wa)-mean(prev))/2;}
+  else if(wAvgWeek(a)!=null&&wAvgWeek(b)!=null){rate=wAvgWeek(b)-wAvgWeek(a);}
+  R.stats.weight=wa.length?mean(wa):null;R.stats.rate=rate;
+  if(!wa.length){R.odd.push("Aucune pesée sur ces 15 jours : impossible de savoir si tu manges assez. Pèse-toi 4 matins par semaine, à jeun.");}
+  else if(rate==null){R.next.push("Pas encore assez de pesées pour calculer ta tendance : il en faut sur 2 semaines.");}
+  else{
+    var rs=fmtSigned(rate,2)+" kg/sem";
+    if(base==="C"){
+      if(rate<-0.1){R.odd.push("Tu perds du poids ("+rs+") en pleine phase de construction : tu ne manges pas assez. C'est la cause n°1 d'une prise de muscle qui stagne.");R.change.push("Ajoute 300 kcal par jour dès maintenant : par exemple 30 g d'amandes + 1 banane + un 2e shaker au lait.");}
+      else if(rate<0.1){R.bad.push("Poids quasi stable ("+rs+") : pour construire, vise +0,1 à +0,35 kg/sem.");R.change.push("Ajoute 150 kcal par jour : 30 g d'amandes, ou une portion de féculents en plus au dîner les jours d'entraînement.");}
+      else if(rate>0.35){R.bad.push("Prise de poids trop rapide ("+rs+") : au-delà de +0,35 kg/sem, c'est surtout du gras.");R.change.push("Retire 150 kcal par jour : supprime le snack d'amandes ou réduis les féculents du soir.");}
+      else R.good.push("Poids dans la cible ("+rs+") : tu construis sans trop stocker.");
+    }else if(base==="S"){
+      if(rate>-0.25){R.bad.push("Perte trop lente ("+rs+") : la sèche vise −0,25 à −0,7 kg/sem.");R.change.push("Retire 150 kcal par jour, ou ajoute 2 000 pas par jour.");}
+      else if(rate<-0.7){R.bad.push("Perte trop rapide ("+rs+") : tu risques de perdre du muscle.");R.change.push("Ajoute 150 kcal par jour, en glucides autour des séances.");}
+      else R.good.push("Perte de poids dans la cible ("+rs+").");
+    }else{
+      if(Math.abs(rate)>0.25){R.bad.push("Poids qui bouge ("+rs+") alors que la finition vise la stabilité.");R.change.push(rate>0?"Retire 150 kcal par jour.":"Ajoute 150 kcal par jour.");}
+      else R.good.push("Poids stable ("+rs+") : c'est l'objectif de la finition.");
+    }
+  }
+  // sauts de pesées
+  for(var i=Math.max(1,a);i<=b;i++){var x1=wAvgWeek(i-1),x2=wAvgWeek(i);if(x1!=null&&x2!=null&&Math.abs(x2-x1)>1.5){R.odd.push("Écart de "+fmtKg(Math.abs(x2-x1))+" kg entre deux semaines : pèse-toi toujours dans les mêmes conditions (le matin, à jeun, après être passé aux toilettes).");break;}}
+  // taille
+  var tNow=lastTaille(b,a),tPrev=lastTaille(a-1,0);
+  if(tNow&&tPrev){var dt=tNow.v-tPrev.v;
+    if(base==="C"&&dt>=2){R.bad.push("Tour de taille +"+fmtKg(dt)+" cm : tu stockes trop.");if(!R.change.some(function(c){return /Retire/.test(c);}))R.change.push("Retire 150 kcal par jour.");}
+    else if(base==="S"&&dt<0)R.good.push("Tour de taille "+fmtSigned(dt,1)+" cm : le gras part du ventre.");
+    else if(base==="C"&&dt<=1)R.good.push("Tour de taille stable ("+fmtSigned(dt,1)+" cm)"+(rate!=null&&rate>0.05?" malgré la prise de poids : bon signe.":"."));
+  } else if(!tNow){R.next.push("Pense à mesurer ton tour de taille (au nombril, le matin) : c'est le meilleur repère pour les abdos.");}
+  // charges
+  var up=[],down=[],stuck=[],notUp=[],light=[],heavy=0,setsTot=0;
+  KEYLIFTS.forEach(function(L){
+    var logs=liftLogs(L[0],L[1],b), inP=logs.filter(function(z){return z.wi>=a;}), before=logs.filter(function(z){return z.wi<a;});
+    if(!inP.length)return;
+    var lastB=inP[inP.length-1].b, ref=before.length?before[before.length-1].b:inP[0].b;
+    var d=(lastB.e-ref.e)/ref.e;
+    if(before.length||inP.length>1){
+      if(d>0.01)up.push(L[2]+" ("+fmtKg(ref.kg)+" → "+fmtKg(lastB.kg)+" kg)");
+      else if(d<-0.04)down.push(L[2]);
+    }
+    if(logs.length>=3){var l3=logs.slice(-3);if(l3[2].b.e<=l3[0].b.e*1.005){
+      var ex=SESS[L[0]].ex.filter(function(z){return z.id===L[1];})[0];
+      var rr=l3[2].x.reps.map(num).filter(function(r){return r!=null;});
+      if(rr.length>=ex.s&&rr.slice(0,ex.s).every(function(r){return r>=ex.hi;}))notUp.push(L[2]);
+      else stuck.push([L[2],L[3]]);}}
+  });
+  wk.forEach(function(w){if(w.p==="R"||w.p==="D")return;SESS_ORDER.forEach(function(s){var l=getLog(w.key,s);SESS[s].ex.forEach(function(e){var x=exData(l,e);if(!filled(x))return;x.reps.forEach(function(r){var n=num(r);if(n==null)return;setsTot++;if(n<e.lo)heavy++;if(n>=e.hi+4&&light.indexOf(e.n)<0)light.push(e.n);});});});});
+  R.stats.up=up.length;
+  if(up.length)R.good.push("Charges en hausse : "+up.join(", ")+".");
+  if(base==="C"&&!up.length&&setsTot>0)R.bad.push("Aucune progression sur les 5 exercices principaux ces 15 jours.");
+  if(down.length){if(base==="S"){R.bad.push("Force en baisse sur : "+down.join(", ")+".");if(!R.change.some(function(c){return /Ajoute 150/.test(c);}))R.change.push("Ajoute 150 kcal par jour : en sèche, une baisse de force veut dire que le déficit est trop fort.");}else R.bad.push("Charges en baisse sur : "+down.join(", ")+".");}
+  notUp.forEach(function(n){R.odd.push(n+" : toutes tes séries sont au maximum depuis plusieurs séances, mais la charge n'a pas bougé. Monte de 2,5 kg à la prochaine séance, comme l'appli le propose.");});
+  stuck.forEach(function(z){R.change.push(z[0]+" bloqué depuis 3 séances : vérifie sommeil et protéines. Si c'est encore bloqué au prochain bilan, remplace-le par "+z[1]+" pendant 4 semaines.");});
+  if(setsTot&&heavy/setsTot>0.3)R.bad.push(Math.round(100*heavy/setsTot)+" % de tes séries sont sous le bas de la fourchette : tes charges sont trop lourdes, baisse d'un cran.");
+  light.forEach(function(n){R.change.push(n+" : tu dépasses largement la fourchette, la charge est trop légère. Monte de 2 crans d'un coup.");});
+  if(setsTot===0&&done===0)R.odd.push("Aucune séance notée sur ces 15 jours.");
+  // à venir
+  var nxt=[WEEKS[b+1],WEEKS[b+2]].filter(Boolean);
+  nxt.forEach(function(w){
+    if(w.p==="D")R.next.push("Semaine du "+fmtLong(w.date)+" : semaine allégée (mêmes charges, moitié des séries).");
+    if(w.p==="S"&&WEEKS[w.i-1]&&WEEKS[w.i-1].base!=="S")R.next.push(fmtLong(w.date)+" : début de la sèche. Passe à ≈ 2 050 kcal et 145–150 g de protéines. Garde tes charges.");
+    if(w.p==="F"&&WEEKS[w.i-1]&&WEEKS[w.i-1].p!=="F")R.next.push(fmtLong(w.date)+" : début de la finition. Remonte au maintien calorique.");
+  });
+  if(!R.change.length)R.change.push("Rien à changer : on continue le programme tel quel.");
+  return R;
+}
+function bilanText(k,R){
+  var wk=perWeeks(k),L=[];
+  L.push("Bilan muscu du "+fmtLong(perStart(k))+" au "+fmtLong(perEnd(k))+" ("+PH[wk[0].p].n+")");
+  L.push("Séances : "+R.stats.done+"/"+R.stats.planned);
+  wk.forEach(function(w){var m=DATA.meas[w.key];L.push("Semaine du "+fmtD(w.date)+" : poids moyen "+(m&&avgW(m)!=null?fmtKg(avgW(m))+" kg":"—")+(m&&m.taille?", taille "+m.taille+" cm":""));
+    SESS_ORDER.forEach(function(s){var l=getLog(w.key,s);if(!l)return;var parts=SESS[s].ex.map(function(e){var x=exData(l,e);if(!filled(x))return null;return e.n+" "+(x.kg?x.kg+" kg ":"")+x.reps.filter(function(r){return r;}).join("-");}).filter(Boolean);if(parts.length)L.push("  "+SESS[s].name+(l.done?"":" (non terminée)")+" : "+parts.join(" · "));});});
+  [["Ce qui va bien",R.good],["À améliorer",R.bad],["Ajustements",R.change],["Points d'attention",R.odd]].forEach(function(g){if(g[1].length){L.push(g[0]+" :");g[1].forEach(function(t){L.push("- "+t);});}});
+  return L.join("\n");
+}
+var bilanK=null;
+function vBilan(){
+  var last=lastCompletePer(), cur=curPer();
+  if(bilanK==null)bilanK=last>=0?last:cur;
+  var k=Math.max(0,Math.min(NPER-1,bilanK)), complete=perComplete(k), R=analyse(k);
+  if(complete){var seen=lsGet(LS_SEEN,-1);if(k>seen)lsSet(LS_SEEN,k);}
+  var h=pageHead("Bilan","Tous les 15 jours : ce qui marche, ce qu'on ajuste");
+  h+='<div class="weeknav" style="margin-top:12px"><button data-act="bprev" aria-label="Bilan précédent">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">'+fmtLong(perStart(k))+' → '+fmtLong(perEnd(k))+'</div><span class="p pill-'+perWeeks(k)[0].p+'">'+(complete?'Bilan '+(k+1)+'/16':'En cours · définitif le '+fmtLong(perEnd(k)))+'</span></div><button data-act="bnext" aria-label="Bilan suivant">›</button></div>';
+  h+='<div class="bstats"><div><b>'+R.stats.done+'/'+R.stats.planned+'</b><span>séances</span></div><div><b>'+(R.stats.weight!=null?fmtKg(R.stats.weight):'—')+'</b><span>kg moyen</span></div><div><b>'+(R.stats.rate!=null?fmtSigned(R.stats.rate,2):'—')+'</b><span>kg / sem</span></div><div><b>'+R.stats.up+'/5</b><span>charges ↑</span></div></div>';
+  function block(cls,title,icon,arr){if(!arr.length)return '';return '<div class="bblock '+cls+'"><div class="bt">'+icon+title+'</div><ul>'+arr.map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div>';}
+  h+=block('b-good','Ce qui va bien','<span class="bi">✓</span>',R.good);
+  h+=block('b-bad','À améliorer','<span class="bi">!</span>',R.bad);
+  h+=block('b-change','Ce qu\'on ajuste','<span class="bi">→</span>',R.change);
+  h+=block('b-odd','Ce qui m\'interpelle','<span class="bi">?</span>',R.odd);
+  h+=block('b-next','À venir','<span class="bi">◷</span>',R.next);
+  h+='<div class="card"><div class="muted">Ce bilan est calculé par l\'appli à partir de tes séances et de tes mesures, même sans réseau. Pour un avis plus poussé, copie-le et colle-le dans ta conversation avec Claude.</div><button class="btn primary" data-act="bcopy">Copier le bilan pour Claude</button></div>';
+  return h;
+}
+function bilanBadge(){var last=lastCompletePer();var seen=lsGet(LS_SEEN,-1);var b=document.querySelector('nav.tabs button[data-tab="bilan"]');if(b)b.classList.toggle("new",last>seen);}
+
 /* ================= Événements ================= */
 app.addEventListener("input",function(ev){
   var t=ev.target;if(t.tagName!=="INPUT")return;
@@ -553,6 +698,9 @@ document.addEventListener("click",function(ev){
   else if(a==="go"){state.wi=+b.getAttribute("data-w");state.s=b.getAttribute("data-s");state.tab="seance";saveUI();render();window.scrollTo(0,0);}
   else if(a==="done"){var w=WEEKS[state.wi];var l=ensureLog(w.key,state.s);l.done=!l.done;touchLog(logKey(w.key,state.s));render();if(l.done)toast("Séance enregistrée");}
   else if(a==="timer")startTimer(+b.getAttribute("data-sec"),b.getAttribute("data-n"));
+  else if(a==="bprev"){bilanK=Math.max(0,(bilanK||0)-1);render();}
+  else if(a==="bnext"){bilanK=Math.min(curPer(),(bilanK||0)+1);render();}
+  else if(a==="bcopy"){var txt=bilanText(bilanK,analyse(bilanK));if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast("Bilan copié : colle-le dans Claude");},function(){showText(txt);});}else showText(txt);}
   else if(a==="export")doExport();
   else if(a==="download")doDownload();
   else if(a==="import")openImport();
