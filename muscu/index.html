@@ -205,10 +205,16 @@ nav.tabs button{font-size:10.5px}
 .skipped{background:var(--card2);border-radius:18px;padding:14px;text-align:center;color:var(--muted);font-weight:600;margin-top:6px}
 .skipwarn{background:#FBE9DE;color:#7A3412;border-radius:14px;padding:12px;margin-top:10px;font-size:14px;line-height:1.45}
 .sq.skip{background:repeating-linear-gradient(45deg,#EDE8E0,#EDE8E0 4px,#E0D9CE 4px,#E0D9CE 8px);color:#B0A99D}
+
+.startcard{background:var(--card);border:1.5px solid rgba(210,98,43,.35);border-radius:20px;padding:14px 16px;margin:0 0 12px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.45;color:var(--muted);box-shadow:var(--shadow)}
+.startcard b{font-family:var(--display);font-size:19px;color:var(--text)}
+.startcard .sbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.startcard .btn{margin-top:4px;font-size:14px}
+.linkbtn{color:var(--accent);font-weight:700;text-decoration:underline;padding:0}
 </style>
 </head>
 <body>
-<div class="splash" id="splash" role="presentation"><svg class="splash-logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="mlg" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#34496A"/><stop offset="1" stop-color="#18202E"/></linearGradient><radialGradient id="mglow"><stop offset="0" stop-color="#F7B37E" stop-opacity=".75"/><stop offset="1" stop-color="#F7B37E" stop-opacity="0"/></radialGradient><clipPath id="mclip"><rect width="512" height="512"/></clipPath></defs><g clip-path="url(#mclip)"><rect width="512" height="512" fill="url(#mlg)"/><g class="m-sun"><circle cx="360" cy="170" r="110" fill="url(#mglow)"/><circle cx="360" cy="170" r="46" fill="#E9915B"/></g><path d="M0 400l150-180 80 90 70-70 212 190V512H0z" fill="#2B3B55"/><g class="m-bar"><path d="M150 300h212" stroke="#F4EEE4" stroke-width="18" stroke-linecap="round"/><g class="m-pl"><rect x="100" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="146" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g><g class="m-pr"><rect x="378" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="342" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g></g></g></svg><div class="sn">Muscu</div><div class="ss">Transformation · nov. → juin</div></div>
+<div class="splash" id="splash" role="presentation"><svg class="splash-logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="mlg" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#34496A"/><stop offset="1" stop-color="#18202E"/></linearGradient><radialGradient id="mglow"><stop offset="0" stop-color="#F7B37E" stop-opacity=".75"/><stop offset="1" stop-color="#F7B37E" stop-opacity="0"/></radialGradient><clipPath id="mclip"><rect width="512" height="512"/></clipPath></defs><g clip-path="url(#mclip)"><rect width="512" height="512" fill="url(#mlg)"/><g class="m-sun"><circle cx="360" cy="170" r="110" fill="url(#mglow)"/><circle cx="360" cy="170" r="46" fill="#E9915B"/></g><path d="M0 400l150-180 80 90 70-70 212 190V512H0z" fill="#2B3B55"/><g class="m-bar"><path d="M150 300h212" stroke="#F4EEE4" stroke-width="18" stroke-linecap="round"/><g class="m-pl"><rect x="100" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="146" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g><g class="m-pr"><rect x="378" y="236" width="34" height="128" rx="12" fill="#D2622B"/><rect x="342" y="256" width="24" height="88" rx="9" fill="#F4EEE4"/></g></g></g></svg><div class="sn">Muscu</div><div class="ss">Transformation · 32 semaines</div></div>
 <div class="app" id="app"></div>
 <div class="timer" id="timer"><div><div style="font-size:12px;opacity:.8" id="timerLabel">Repos</div><div class="t" id="timerT">0:00</div></div><div style="display:flex;gap:6px"><button id="timerPlus">+15 s</button><button id="timerStop">OK</button></div></div>
 <div class="toast" id="toast"></div>
@@ -263,8 +269,8 @@ var PRIO={
 };
 var PH={R:{n:"Reprise",c:"R"},C:{n:"Construction",c:"C"},D:{n:"Deload",c:"D"},S:{n:"Sèche",c:"S"},F:{n:"Finition",c:"F"}};
 var PCODES="RCCCCDCCCCCDCCSSSSSDSSSSSFFFFFFF".split("");
-var START=new Date(2026,10,23);
-var WEEKS=PCODES.map(function(p,i){var d=new Date(START.getTime());d.setDate(d.getDate()+7*i);return {i:i,key:ymd(d),date:d,p:p,base:(p==="D"?(i<14?"C":"S"):p)};});
+var OLD_START=new Date(2026,10,23);
+var WEEKS=PCODES.map(function(p,i){return {i:i,n:i+1,key:"w"+String(i+1).padStart(2,"0"),p:p,base:(p==="D"?(i<14?"C":"S"):p)};});
 var BANNER={
  R:"<b>Semaine de reprise.</b> 2 séries par exercice, 80 % des charges, loin de l'échec. Prends tes mesures et tes photos de départ.",
  C:"<b>Construction</b> · ≈ 2 700 kcal · 130–140 g de protéines. Objectif : <b>faire monter les charges</b>.",
@@ -286,10 +292,20 @@ var mem={};
 function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return mem[k]!==undefined?mem[k]:def;}}
 function lsSet(k,v){mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}}
 var DATA=lsGet(LS_KEY,{logs:{},meas:{}});
-if(!DATA.logs)DATA.logs={}; if(!DATA.meas)DATA.meas={};
+if(!DATA.logs)DATA.logs={}; if(!DATA.meas)DATA.meas={}; if(!DATA.cfg)DATA.cfg={start:null,updatedAt:0};
 var DIRTY=lsGet(LS_DIRTY,{});
 var UI=lsGet(LS_UI,{});
 var storageOK=(function(){try{localStorage.setItem("__t","1");localStorage.removeItem("__t");return true;}catch(e){return false;}})();
+function oldIdx(dstr){var p=dstr.split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);return Math.round((d-OLD_START)/(7*864e5));}
+function migrate(){
+  var moved=0;
+  ["logs","meas"].forEach(function(col){var store=DATA[col];Object.keys(store).forEach(function(k){
+    var m=k.match(/^(\d{4}-\d{2}-\d{2})(_.+)?$/);if(!m)return;var i=oldIdx(m[1]);
+    if(i>=0&&i<WEEKS.length){var nk=WEEKS[i].key+(m[2]||"");var v=store[k];if(col==="logs")v.week=WEEKS[i].key;
+      if(!store[nk]||(v.updatedAt||0)>(store[nk].updatedAt||0)){store[nk]=v;store[nk].updatedAt=Math.max(v.updatedAt||0,1);DIRTY[col+"/"+nk]=1;}}
+    delete store[k];DIRTY[col+"/"+k]="del";moved++;});});
+  if(moved)persist();return moved;
+}
 function persist(){lsSet(LS_KEY,DATA);lsSet(LS_DIRTY,DIRTY);}
 function logKey(wk,s){return wk+"_"+s;}
 function getLog(wk,s){return DATA.logs[logKey(wk,s)]||null;}
@@ -322,8 +338,10 @@ function initSync(){
   }).catch(function(){setSync();});
 }
 function pull(){
-  return withTimeout(Promise.all([db.collection("logs").get(),db.collection("meas").get()]),12000).then(function(r){
+  return withTimeout(Promise.all([db.collection("logs").get(),db.collection("meas").get(),db.collection("cfg").get()]),12000).then(function(r){
     var changed=false;
+    r[2].docs.forEach(function(doc){var v=doc.data();if(!v||doc.id!=="main")return;if((v.updatedAt||0)>(DATA.cfg.updatedAt||0)){DATA.cfg={start:v.start||null,updatedAt:v.updatedAt};delete DIRTY["cfg/main"];changed=true;}});
+    if((DATA.cfg.updatedAt||0)>0&&!r[2].docs.some(function(d){return d.id==="main"&&(d.data().updatedAt||0)>=DATA.cfg.updatedAt;}))DIRTY["cfg/main"]=1;
     r[0].docs.forEach(function(doc){var v=doc.data();if(!v)return;var loc=DATA.logs[doc.id];
       if(!loc||(v.updatedAt||0)>(loc.updatedAt||0)){DATA.logs[doc.id]=JSON.parse(JSON.stringify(v));delete DIRTY["logs/"+doc.id];changed=true;}});
     r[1].docs.forEach(function(doc){var v=doc.data();if(!v)return;var loc=DATA.meas[doc.id];
@@ -331,6 +349,7 @@ function pull(){
     var remote={};r[0].docs.forEach(function(d){remote["logs/"+d.id]=d.data().updatedAt||0;});r[1].docs.forEach(function(d){remote["meas/"+d.id]=d.data().updatedAt||0;});
     Object.keys(DATA.logs).forEach(function(k){if((DATA.logs[k].updatedAt||0)>(remote["logs/"+k]||0)&&DATA.logs[k].updatedAt)DIRTY["logs/"+k]=1;});
     Object.keys(DATA.meas).forEach(function(k){if((DATA.meas[k].updatedAt||0)>(remote["meas/"+k]||0)&&DATA.meas[k].updatedAt)DIRTY["meas/"+k]=1;});
+    if(migrate())changed=true;
     persist();
     if(changed&&!userMoved){state.wi=todayWeekIdx();state.s=firstUndone(state.wi);}
     if(changed&&!isTyping())render();
@@ -343,7 +362,9 @@ function flush(){
   var i=0;
   (function next(){
     if(i>=keys.length){flushing=false;persist();setSync();return;}
-    var path=keys[i++]; var parts=path.split("/"); var src=parts[0]==="logs"?DATA.logs[parts[1]]:DATA.meas[parts[1]];
+    var path=keys[i++]; var parts=path.split("/");
+    if(DIRTY[path]==="del"){withTimeout(db.doc(path).delete(),15000).then(function(){delete DIRTY[path];next();},function(){flushing=false;persist();setSync();});return;}
+    var src=parts[0]==="logs"?DATA.logs[parts[1]]:parts[0]==="cfg"?DATA.cfg:DATA.meas[parts[1]];
     if(!src){delete DIRTY[path];next();return;}
     var stamp=src.updatedAt;
     withTimeout(db.doc(path).set(JSON.parse(JSON.stringify(src))),15000).then(function(){
@@ -391,10 +412,15 @@ function suggestion(wi,s,e){
 }
 
 /* ================= État d'interface ================= */
-function todayWeekIdx(){var t=new Date();t.setHours(12,0,0,0);var i=Math.floor((t-START)/(7*864e5));return Math.max(0,Math.min(WEEKS.length-1,i));}
+function startDate(){var st=DATA.cfg&&DATA.cfg.start;if(!st)return null;var p=st.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+function started(){var d=startDate();if(!d)return false;var t=new Date();t.setHours(12,0,0,0);return t>=d;}
+function mondayOf(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);return x;}
+function setStart(d){DATA.cfg={start:d?ymd(d):null,updatedAt:Date.now()};DIRTY["cfg/main"]=1;scheduleSave();}
+function todayWeekIdx(){var d=startDate();if(!d)return 0;var t=new Date();t.setHours(12,0,0,0);var i=Math.floor((t-d)/(7*864e5));return Math.max(0,Math.min(WEEKS.length-1,i));}
 function defaultSess(){var d=new Date().getDay();return {1:"HA",2:"J",3:"HB",4:"HB",5:"HC",6:"HC",0:"HC"}[d];}
 function firstUndone(wi){var wk=WEEKS[wi].key;for(var i=0;i<SESS_ORDER.length;i++){var l=getLog(wk,SESS_ORDER[i]);if(!(l&&(l.done||l.skipped)))return SESS_ORDER[i];}return SESS_ORDER[SESS_ORDER.length-1];}
 var userMoved=false;
+migrate();
 var state={tab:"seance",wi:todayWeekIdx(),s:"HA"};
 state.s=firstUndone(state.wi);
 function saveUI(){lsSet(LS_UI,{date:ymd(new Date()),wi:state.wi,s:state.s,tab:state.tab});}
@@ -440,12 +466,12 @@ function artSVG(phase,s){
 }
 function weekNav(){
   var w=WEEKS[state.wi];
-  return '<div class="weeknav" style="margin-top:12px"><button data-act="wprev" aria-label="Semaine précédente">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">Semaine du '+fmtLong(w.date)+'</div><span class="p pill-'+w.p+'">'+PH[w.p].n+' · '+(w.i+1)+'/32</span></div><button data-act="wnext" aria-label="Semaine suivante">›</button></div>';
+  return '<div class="weeknav" style="margin-top:12px"><button data-act="wprev" aria-label="Semaine précédente">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">Semaine '+w.n+'</div><span class="p pill-'+w.p+'">'+PH[w.p].n+' · '+w.n+'/32</span></div><button data-act="wnext" aria-label="Semaine suivante">›</button></div>';
 }
-function progBar(){var cur=todayWeekIdx();return '<div class="prog" aria-hidden="true">'+WEEKS.map(function(x){return '<i class="'+x.p+(x.i===state.wi?' now':(x.i<cur?' past':''))+'"></i>';}).join("")+'</div>';}
+function progBar(){var cur=started()?todayWeekIdx():-1;return '<div class="prog" aria-hidden="true">'+WEEKS.map(function(x){return '<i class="'+x.p+(x.i===state.wi?' now':(x.i<cur?' past':''))+'"></i>';}).join("")+'</div>';}
 function band(){
   var w=WEEKS[state.wi],S=SESS[state.s];
-  return '<header class="band">'+artSVG(w.p,state.s)+'<div class="bnav"><button data-act="wprev" aria-label="Semaine précédente">‹</button><span class="wkl">Semaine du '+fmtLong(w.date)+'</span><button data-act="wnext" aria-label="Semaine suivante">›</button></div>'+
+  return '<header class="band">'+artSVG(w.p,state.s)+'<div class="bnav"><button data-act="wprev" aria-label="Semaine précédente">‹</button><span class="wkl">Semaine '+w.n+(started()&&w.i===todayWeekIdx()?' · en cours':'')+'</span><button data-act="wnext" aria-label="Semaine suivante">›</button></div>'+
    '<div><div class="eyebrow">'+PH[w.p].n+' · semaine '+(w.i+1)+'/32</div><h1>'+S.name+'</h1><div class="bsub">'+S.focus+' · ≈ 40 min</div>'+progBar()+'</div></header>';
 }
 function pageHead(title,sub){var w=WEEKS[todayWeekIdx()];return '<header class="pagehead">'+artSVG(w.p,null)+'<h1>'+title+'</h1><div class="bsub">'+sub+'</div></header>';}
@@ -456,6 +482,7 @@ function vSeance(){
   h+='<div class="seg">'+SESS_ORDER.map(function(k){var l=getLog(w.key,k);return '<button class="'+(k===state.s?'on':'')+'" data-act="sess" data-s="'+k+'">'+(l&&l.done?'<span class="tick" aria-label="faite"></span>':(l&&l.skipped?'<span class="tick sk" aria-label="passée"></span>':''))+SESS[k].name+'</button>';}).join("")+'</div>';
   var P=PRIO[state.s];
   h+='<div class="prio p-'+P.lvl+'"><span class="plab">'+P.lab+'</span><span>'+P.txt+'</span></div>';
+  if(!started())h+=startCard();
   h+='<div class="note">'+NOTE[w.p]+'</div>';
   S.ex.forEach(function(e,idx){
     var sg=suggestion(state.wi,state.s,e), x=exData(log,e)||{}, n=nSets(e,w.p), reps=x.reps||[];
@@ -480,16 +507,21 @@ function vSeance(){
   h+='<div class="note" style="margin-top:12px;text-align:center">Pas le temps pour tout ? Ordre pour sauter : <b>Haut C</b>, puis Haut B. Jamais Jambes.</div>';
   return h;
 }
+function startCard(){
+  var d=startDate();
+  if(d)return '<div class="startcard"><b>Départ prévu la semaine prochaine.</b><span>Tu peux déjà regarder tes séances. <button class="linkbtn" data-act="startNow">Commencer cette semaine</button></span></div>';
+  return '<div class="startcard"><b>Prêt à démarrer ?</b><span>Le programme compte 32 semaines à partir du jour où tu commences.</span><div class="sbtns"><button class="btn primary" data-act="startNow">Je commence cette semaine</button><button class="btn" data-act="startNext">La semaine prochaine</button></div></div>';
+}
 function vCal(){
-  var cur=todayWeekIdx();
-  var h=pageHead("Calendrier","32 semaines · 23 nov. → 27 juin")+'<h3>Semaine par semaine</h3><div class="cal"><div class="calrow calhead"><div>Lundi</div><div>Phase</div><div>A</div><div>J</div><div>B</div><div>C</div><div style="text-align:right">Poids</div></div>';
+  var cur=started()?todayWeekIdx():-1;
+  var h=pageHead("Calendrier","32 semaines · "+(started()?"tu es en semaine "+(cur+1):"pas encore démarré"))+'<h3>Semaine par semaine</h3><div class="cal"><div class="calrow calhead"><div>Sem.</div><div>Phase</div><div>A</div><div>J</div><div>B</div><div>C</div><div style="text-align:right">Poids</div></div>';
   WEEKS.forEach(function(w){
     var m=DATA.meas[w.key], avg=m?avgW(m):null;
-    h+='<div class="calrow'+(w.i===cur?' cur':'')+'"><div class="dt">'+fmtD(w.date)+'</div><div class="pl ph-'+w.p+'">'+({R:"Reprise",C:"Constr.",D:"Deload",S:"Sèche",F:"Finition"})[w.p]+'</div>'+
-      SESS_ORDER.map(function(k){var l=getLog(w.key,k);var lab={HA:"A",J:"J",HB:"B",HC:"C"}[k];return '<button class="sq'+(l&&l.done?' done':(l&&l.skipped?' skip':''))+'" data-act="go" data-w="'+w.i+'" data-s="'+k+'" aria-label="'+SESS[k].name+' semaine du '+fmtD(w.date)+'">'+lab+'</button>';}).join("")+
+    h+='<div class="calrow'+(w.i===cur?' cur':'')+'"><div class="dt">S'+w.n+'</div><div class="pl ph-'+w.p+'">'+({R:"Reprise",C:"Constr.",D:"Deload",S:"Sèche",F:"Finition"})[w.p]+'</div>'+
+      SESS_ORDER.map(function(k){var l=getLog(w.key,k);var lab={HA:"A",J:"J",HB:"B",HC:"C"}[k];return '<button class="sq'+(l&&l.done?' done':(l&&l.skipped?' skip':''))+'" data-act="go" data-w="'+w.i+'" data-s="'+k+'" aria-label="'+SESS[k].name+' semaine '+w.n+'">'+lab+'</button>';}).join("")+
       '<div class="wt">'+(avg!=null?fmtKg(avg):'<span style="color:#C9C4BA">—</span>')+'</div></div>';
   });
-  h+='</div><div class="muted" style="margin:10px 2px">Touche une case pour ouvrir la séance. Deload : 28 déc., 8 févr., 5 avr.</div>';
+  h+='</div><div class="muted" style="margin:10px 2px">Touche une case pour ouvrir la séance. Semaines allégées : 6, 12 et 20.</div>';
   var tot=0,done=0;WEEKS.forEach(function(w){if(w.i<=cur)SESS_ORDER.forEach(function(k){tot++;var l=getLog(w.key,k);if(l&&l.done)done++;});});
   h+='<div class="card"><div class="muted">Séances faites jusqu\'ici</div><div class="big">'+done+' <span style="font-size:16px;color:var(--muted)">/ '+tot+'</span></div></div>';
   return h;
@@ -503,9 +535,9 @@ function vMes(){
   for(var i=0;i<4;i++)h+='<div class="field"><label>Pesée '+(i+1)+'</label><input inputmode="decimal" data-k="w" data-i="'+i+'" value="'+esc((m.w||[])[i]||"")+'" placeholder="kg" aria-label="Pesée '+(i+1)+' en kg"></div>';
   h+='</div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px"><div class="muted">Moyenne de la semaine</div><div class="big" id="avgOut">'+(avg!=null?fmtKg(avg)+' kg':'—')+'</div></div></div>';
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><div style="font-weight:800">Tour de taille</div><div class="muted">'+(tailleWeek?'À mesurer cette semaine, au nombril, le matin.':'Toutes les 2 semaines (pas cette semaine).')+'</div></div><div class="field" style="width:96px"><label>cm</label><input inputmode="decimal" data-k="taille" value="'+esc(m.taille||"")+'" placeholder="cm" aria-label="Tour de taille en cm"></div></div></div>';
-  h+='<h3>Évolution du poids</h3><div class="card"><svg class="chart" id="chart" role="img" aria-label="Courbe du poids moyen par semaine"></svg><div class="muted">Repères : ~68 kg fin février, 65–66 kg fin mai.</div></div>';
+  h+='<h3>Évolution du poids</h3><div class="card"><svg class="chart" id="chart" role="img" aria-label="Courbe du poids moyen par semaine"></svg><div class="muted">Repères : ~68 kg en semaine 14, 65–66 kg en semaine 25.</div></div>';
   var rowsT=WEEKS.filter(function(x){var mm=DATA.meas[x.key];return mm&&(avgW(mm)!=null||num(mm.taille)!=null);});
-  if(rowsT.length){h+='<h3>Historique</h3><div class="card"><table class="tbl"><thead><tr><th>Semaine</th><th>Poids moy.</th><th>Taille</th></tr></thead><tbody>'+rowsT.slice().reverse().map(function(x){var mm=DATA.meas[x.key];var a=avgW(mm);return '<tr><td>'+fmtD(x.date)+'</td><td>'+(a!=null?fmtKg(a)+' kg':'—')+'</td><td>'+(num(mm.taille)!=null?esc(mm.taille)+' cm':'—')+'</td></tr>';}).join("")+'</tbody></table></div>';}
+  if(rowsT.length){h+='<h3>Historique</h3><div class="card"><table class="tbl"><thead><tr><th>Semaine</th><th>Poids moy.</th><th>Taille</th></tr></thead><tbody>'+rowsT.slice().reverse().map(function(x){var mm=DATA.meas[x.key];var a=avgW(mm);return '<tr><td>Semaine '+x.n+'</td><td>'+(a!=null?fmtKg(a)+' kg':'—')+'</td><td>'+(num(mm.taille)!=null?esc(mm.taille)+' cm':'—')+'</td></tr>';}).join("")+'</tbody></table></div>';}
   h+='<div class="card"><div style="font-weight:800;margin-bottom:6px">Ajuster par paliers de 150 kcal</div>'+
    '<div class="kv"><span>Construction : &lt; +0,1 kg/sem sur 3 sem.</span><b>+150 kcal</b></div>'+
    '<div class="kv"><span>Construction : &gt; +0,35 kg/sem ou taille +2 cm</span><b>−150 kcal</b></div>'+
@@ -550,7 +582,10 @@ function vInfo(){
   h+='<button class="btn primary" data-act="export">Copier la sauvegarde</button>';
   if(isPWA)h+='<button class="btn" data-act="download">Enregistrer un fichier de sauvegarde</button>';
   h+='<button class="btn" data-act="import">Importer une sauvegarde</button></div>';
-  h+='<div class="muted" style="margin:14px 2px">Programme du 23 nov. 2026 au 27 juin 2027.</div>';
+  h+='<h3>Démarrage</h3><div class="card">';
+  if(!startDate())h+='<div class="muted">Programme pas encore démarré.</div><button class="btn primary" data-act="startNow">Je commence cette semaine</button><button class="btn" data-act="startNext">La semaine prochaine</button>';
+  else{h+='<div class="muted">'+(started()?'Tu es en <b style="color:var(--text)">semaine '+(todayWeekIdx()+1)+'</b> sur 32.':'Départ prévu la semaine prochaine.')+' Une semaine sans entraînement (vacances, malade) ? Décale le programme : tu reprendras là où tu t\'es arrêté.</div><button class="btn" data-act="shift">Décaler d\'une semaine</button><button class="btn" data-act="restart">Changer la semaine de départ</button>';}
+  h+='</div>';
   return h;
 }
 
@@ -572,9 +607,8 @@ var LS_SEEN="muscu_jt_bilan_seen_v1";
 var KEYLIFTS=[["HA","A1","Développé couché","développé couché haltères"],["HA","A2","Rowing barre","rowing haltère 1 bras lourd"],["J","1","Squat","squat avec pause de 2 s en bas"],["J","2","RDL","RDL aux haltères"],["HB","A1","Développé militaire","développé haltères assis"]];
 var NPER=16;
 function perWeeks(k){return [WEEKS[2*k],WEEKS[2*k+1]];}
-function perStart(k){return WEEKS[2*k].date;}
-function perEnd(k){var d=new Date(WEEKS[2*k+1].date.getTime());d.setDate(d.getDate()+6);return d;}
-function perComplete(k){var t=new Date();t.setHours(0,0,0,0);var e=perEnd(k);e.setHours(0,0,0,0);return t>=e;}
+function perLabel(k){return "Semaines "+(2*k+1)+"–"+(2*k+2);}
+function perComplete(k){var d=startDate();if(!d)return false;var e=new Date(d.getTime());e.setDate(e.getDate()+7*(2*k+2)-1);e.setHours(0,0,0,0);var t=new Date();t.setHours(0,0,0,0);return t>=e;}
 function curPer(){return Math.floor(todayWeekIdx()/2);}
 function lastCompletePer(){for(var k=NPER-1;k>=0;k--)if(perComplete(k))return k;return -1;}
 function bestSet(x){var best=null;(x.reps||[]).forEach(function(r){var n=num(r),kg=num(x.kg);if(n==null||kg==null)return;var e=kg*(1+n/30);if(!best||e>best.e)best={e:e,kg:kg,r:n};});return best;}
@@ -663,18 +697,18 @@ function analyse(k){
   // à venir
   var nxt=[WEEKS[b+1],WEEKS[b+2]].filter(Boolean);
   nxt.forEach(function(w){
-    if(w.p==="D")R.next.push("Semaine du "+fmtLong(w.date)+" : semaine allégée (mêmes charges, moitié des séries).");
-    if(w.p==="S"&&WEEKS[w.i-1]&&WEEKS[w.i-1].base!=="S")R.next.push(fmtLong(w.date)+" : début de la sèche. Passe à ≈ 2 050 kcal et 145–150 g de protéines. Garde tes charges.");
-    if(w.p==="F"&&WEEKS[w.i-1]&&WEEKS[w.i-1].p!=="F")R.next.push(fmtLong(w.date)+" : début de la finition. Remonte au maintien calorique.");
+    if(w.p==="D")R.next.push("Semaine "+w.n+" : semaine allégée (mêmes charges, moitié des séries).");
+    if(w.p==="S"&&WEEKS[w.i-1]&&WEEKS[w.i-1].base!=="S")R.next.push("Semaine "+w.n+" : début de la sèche. Passe à ≈ 2 050 kcal et 145–150 g de protéines. Garde tes charges.");
+    if(w.p==="F"&&WEEKS[w.i-1]&&WEEKS[w.i-1].p!=="F")R.next.push("Semaine "+w.n+" : début de la finition. Remonte au maintien calorique.");
   });
   if(!R.change.length)R.change.push("Rien à changer : on continue le programme tel quel.");
   return R;
 }
 function bilanText(k,R){
   var wk=perWeeks(k),L=[];
-  L.push("Bilan muscu du "+fmtLong(perStart(k))+" au "+fmtLong(perEnd(k))+" ("+PH[wk[0].p].n+")");
+  L.push("Bilan muscu, "+perLabel(k).toLowerCase()+" sur 32 ("+PH[wk[0].p].n+")");
   L.push("Séances : "+R.stats.done+"/"+R.stats.planned);
-  wk.forEach(function(w){var m=DATA.meas[w.key];L.push("Semaine du "+fmtD(w.date)+" : poids moyen "+(m&&avgW(m)!=null?fmtKg(avgW(m))+" kg":"—")+(m&&m.taille?", taille "+m.taille+" cm":""));
+  wk.forEach(function(w){var m=DATA.meas[w.key];L.push("Semaine "+w.n+" : poids moyen "+(m&&avgW(m)!=null?fmtKg(avgW(m))+" kg":"—")+(m&&m.taille?", taille "+m.taille+" cm":""));
     SESS_ORDER.forEach(function(s){var l=getLog(w.key,s);if(!l)return;var parts=SESS[s].ex.map(function(e){var x=exData(l,e);if(!filled(x))return null;return e.n+" "+(x.kg?x.kg+" kg ":"")+x.reps.filter(function(r){return r;}).join("-");}).filter(Boolean);if(parts.length)L.push("  "+SESS[s].name+(l.done?"":" (non terminée)")+" : "+parts.join(" · "));});});
   [["Ce qui va bien",R.good],["À améliorer",R.bad],["Ajustements",R.change],["Points d'attention",R.odd]].forEach(function(g){if(g[1].length){L.push(g[0]+" :");g[1].forEach(function(t){L.push("- "+t);});}});
   return L.join("\n");
@@ -687,8 +721,8 @@ function vBilan(){
   if(!complete){R.bad=R.bad.filter(function(t){return !/^Seulement/.test(t);});R.odd=R.odd.filter(function(t){return !/^Aucune (pesée|séance)/.test(t);});}
   if(complete){var seen=lsGet(LS_SEEN,-1);if(k>seen)lsSet(LS_SEEN,k);}
   var h=pageHead("Bilan","Tous les 15 jours : ce qui marche, ce qu'on ajuste");
-  h+='<div class="weeknav" style="margin-top:12px"><button data-act="bprev" aria-label="Bilan précédent">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">'+fmtLong(perStart(k))+' → '+fmtLong(perEnd(k))+'</div><span class="p pill-'+perWeeks(k)[0].p+'">'+(complete?'Bilan '+(k+1)+'/16':'En cours · définitif le '+fmtLong(perEnd(k)))+'</span></div><button data-act="bnext" aria-label="Bilan suivant">›</button></div>';
-  if(!complete)h+='<div class="note" style="margin-top:12px">Bilan provisoire : il se complète au fil des séances et sera définitif le '+fmtLong(perEnd(k))+'.</div>';
+  h+='<div class="weeknav" style="margin-top:12px"><button data-act="bprev" aria-label="Bilan précédent">‹</button><div class="wk"><div class="d" style="font-family:var(--display)">'+perLabel(k)+'</div><span class="p pill-'+perWeeks(k)[0].p+'">'+(complete?'Bilan '+(k+1)+'/16':(startDate()?'En cours':'Pas encore démarré'))+'</span></div><button data-act="bnext" aria-label="Bilan suivant">›</button></div>';
+  if(!complete)h+='<div class="note" style="margin-top:12px">Bilan provisoire : il se complète au fil des séances et sera définitif à la fin de la semaine '+(2*k+2)+'.</div>';
   h+='<div class="bstats"><div><b>'+R.stats.done+'/'+R.stats.planned+'</b><span>séances</span></div><div><b>'+(R.stats.weight!=null?fmtKg(R.stats.weight):'—')+'</b><span>kg moyen</span></div><div><b>'+(R.stats.rate!=null?fmtSigned(R.stats.rate,2):'—')+'</b><span>kg / sem</span></div><div><b>'+R.stats.up+'/5</b><span>charges ↑</span></div></div>';
   function block(cls,title,icon,arr){if(!arr.length)return '';return '<div class="bblock '+cls+'"><div class="bt">'+icon+title+'</div><ul>'+arr.map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div>';}
   h+=block('b-good','Ce qui va bien','<span class="bi">✓</span>',R.good);
@@ -735,6 +769,10 @@ document.addEventListener("click",function(ev){
   else if(a==="wnext"&&state.wi<WEEKS.length-1){state.wi++;saveUI();render();}
   else if(a==="sess"){state.s=b.getAttribute("data-s");saveUI();render();}
   else if(a==="go"){state.wi=+b.getAttribute("data-w");state.s=b.getAttribute("data-s");state.tab="seance";saveUI();render();window.scrollTo(0,0);}
+  else if(a==="startNow"){closeModal();setStart(mondayOf(new Date()));state.wi=0;state.s=firstUndone(0);userMoved=false;render();toast("C'est parti : semaine 1");}
+  else if(a==="startNext"){closeModal();var nd=mondayOf(new Date());nd.setDate(nd.getDate()+7);setStart(nd);render();toast("Départ la semaine prochaine");}
+  else if(a==="shift"){var sd=startDate();if(sd){sd.setDate(sd.getDate()+7);setStart(sd);state.wi=todayWeekIdx();render();toast("Programme décalé d'une semaine");}}
+  else if(a==="restart"){openModal('<div style="font-family:var(--display);font-weight:700;font-size:21px">Changer le départ</div><div class="muted" style="margin-top:6px">Tes séances déjà notées restent rattachées à leur numéro de semaine.</div><button class="btn primary" data-act="startNow" style="margin-top:14px">Semaine 1 = cette semaine</button><button class="btn" data-act="startNext">Semaine 1 = la semaine prochaine</button><button class="btn" data-act="closeModal">Annuler</button>');}
   else if(a==="skip"){openSkip();}
   else if(a==="doSkip"){var w=WEEKS[state.wi];var l=ensureLog(w.key,state.s);l.skipped=true;l.done=false;touchLog(logKey(w.key,state.s));closeModal();var nx=firstUndone(state.wi);var was=state.s;state.s=nx;render();window.scrollTo(0,0);toast(SESS[was].name+" passée");}
   else if(a==="unskip"){var w2=WEEKS[state.wi];var l2=ensureLog(w2.key,state.s);l2.skipped=false;touchLog(logKey(w2.key,state.s));render();}
