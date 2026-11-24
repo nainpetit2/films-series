@@ -197,6 +197,25 @@ body{background:radial-gradient(120% 60% at 100% 0%,rgba(200,69,95,.10),transpar
 @media (prefers-reduced-motion:reduce){.fab{transition:none}}
 .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 
+/* ---- accords mets-vins ---- */
+.accord-btn{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid color-mix(in srgb,var(--accent) 30%,var(--line));background:linear-gradient(120deg,#fff,var(--accent-soft));border-radius:18px;padding:12px 14px;color:var(--ink)}
+.accord-btn svg{width:28px;height:28px;color:var(--accent);flex:none}
+.accord-btn strong{display:block;color:var(--accent);font-size:16px}
+.accord-btn small{display:block;color:var(--muted);font-size:13px}
+.accord-btn[hidden]{display:none}
+.accords{background:var(--accent-soft);border-radius:14px;padding:10px 12px}
+.accords[hidden]{display:none}
+.accords h3{margin:0 0 6px;font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.05em}
+.accords ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:15px}
+.acc-res{display:flex;flex-direction:column;gap:8px}
+.acc-res .vide{color:var(--muted);font-size:14px;padding:4px 0}
+.acc-item{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:16px;padding:8px 10px;background:#fff}
+.acc-item .t{font-weight:600}
+.acc-item .r{font-size:13px;color:var(--muted)}
+.acc-item .vig{width:40px;height:50px}
+.acc-item .vig svg{width:22px;height:36px}
+.acc-titre{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+
 /* ---- écran de connexion ---- */
 .gate{position:fixed;inset:0;z-index:60;background:radial-gradient(120% 80% at 50% 0%,#8A2445,#3A0B1C);display:none;align-items:center;justify-content:center;padding:24px max(18px,env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom))}
 .gate.on{display:flex}
@@ -237,6 +256,7 @@ html,body{overscroll-behavior-y:none}
   </div>
 
   <div class="racheter" id="racheter" hidden></div>
+  <button class="accord-btn" id="accordBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-3 4-3 7h3v11"/></svg><span><strong>Quel vin pour mon plat ?</strong><small>Indique ce que tu cuisines, je cherche dans votre cave</small></span></button>
   <div class="lieux" id="lieux"></div>
 
   <div class="outils">
@@ -250,12 +270,20 @@ html,body{overscroll-behavior-y:none}
 
 <div class="toast" id="toast" role="status"></div>
 <button class="fab" id="fab" type="button" aria-label="Ajouter une bouteille"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
+<div class="voile" id="voile3"><div class="feuille" id="accBox">
+  <h2>Quel vin pour mon plat ?</h2>
+  <div class="champ"><label for="plat">Ton plat</label><input id="plat" type="search" placeholder="Ex. gigot d'agneau, raclette, sushis…" autocomplete="off"></div>
+  <div class="seg" id="platChips"></div>
+  <div id="accRes" class="acc-res"></div>
+  <div class="actions"><button type="button" class="btn sec" id="accFermer" style="flex:1">Fermer</button></div>
+</div></div>
 <div class="voile" id="voile2"><div class="feuille" id="depBox"></div></div>
 <div class="gate" id="gate"><div class="box" id="gateBox"></div></div>
 
 <div class="voile" id="voile">
   <form class="feuille" id="form" novalidate>
     <h2 id="f-titre">Ajouter un vin</h2>
+    <div class="accords" id="f-accords" hidden></div>
     <div class="champ">
       <label for="f-nom">Nom</label>
       <input id="f-nom" type="text" placeholder="Ex. Château Lagrange" autocomplete="off">
@@ -367,7 +395,7 @@ function vignette(it, tab){
 const REGIONS = ["Bordeaux","Bourgogne","Champagne","Vallée du Rhône","Beaujolais","Loire","Alsace","Provence","Languedoc-Roussillon","Sud-Ouest","Jura / Savoie","Corse","Italie","Espagne","Autre pays","Autre"];
 
 const S = {
-  tab: "vins", lieu: null, couleur: null, garde: false, type: null, q: "",
+  platTags: new Set(), tab: "vins", lieu: null, couleur: null, garde: false, type: null, q: "",
   items: {vins: [], aperos: []},
   loaded: {vins: false, aperos: false},
   edit: null, form: null
@@ -439,6 +467,7 @@ function render(){
 
   const bas = S.items.aperos.filter(it => it.bas);
   const past = $("past-aperos"); past.hidden = !bas.length; past.textContent = bas.length;
+  $("accordBtn").hidden = S.tab !== "vins";
   const rach = $("racheter");
   rach.hidden = !(S.tab === "aperos" && bas.length);
   if (!rach.hidden){
@@ -527,6 +556,105 @@ async function flush(tab, id){
   delete pending[id];
   render();
 }
+
+/* ---------- Accords mets-vins (règles intégrées, sans service payant) ---------- */
+const norm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const ACC_LIB = {
+  boeuf: "Bœuf grillé ou rôti", agneau: "Agneau", canard: "Canard, magret", gibier: "Gibier",
+  volaille: "Volaille rôtie", porc: "Porc", charcuterie: "Charcuterie", poisson: "Poisson",
+  "fruits-de-mer": "Fruits de mer", fromage: "Fromages", "fromage-fondu": "Raclette, fondue, tartiflette",
+  chevre: "Fromage de chèvre", "foie-gras": "Foie gras", dessert: "Desserts", apero: "Apéritif",
+  mijote: "Plats mijotés", grillade: "Grillades, barbecue", mediterraneen: "Cuisine méditerranéenne",
+  "pates-pizza": "Pâtes, pizza", champignons: "Champignons", salade: "Salades, légumes", "epice-asiat": "Cuisine épicée ou asiatique"
+};
+const PLAT_MOTS = {
+  boeuf: "boeuf|entrecote|cote de boeuf|steak|bavette|burger|rumsteck|tartare|bourguignon|pot-au-feu|onglet|faux-filet|roti de boeuf|tournedos",
+  agneau: "agneau|gigot|souris|cotelette|navarin|mechoui",
+  canard: "canard|magret|confit|cassoulet|aiguillette",
+  gibier: "gibier|chevreuil|sanglier|biche|lievre|faisan|perdrix|civet",
+  volaille: "poulet|volaille|dinde|chapon|pintade|caille|coq|poularde",
+  porc: "porc|travers|filet mignon|choucroute|saucisse|andouillette|echine|cochon",
+  charcuterie: "charcuterie|saucisson|jambon|rillettes|terrine|pate|planche|coppa|chorizo",
+  poisson: "poisson|saumon|cabillaud|dorade|daurade|\\bbar\\b|loup|sole|thon|truite|merlu|lieu|bouillabaisse|sushi|sashimi|poke",
+  "fruits-de-mer": "huitre|moule|crevette|langoustine|homard|saint-jacques|st jacques|fruits de mer|crabe|coquillage|calamar|poulpe|gambas|bulot",
+  fromage: "fromage|comte|brie|camembert|roquefort|bleu|munster|plateau|beaufort|tomme",
+  "fromage-fondu": "raclette|fondue|tartiflette|reblochon|crozet|mont d'or|croziflette",
+  chevre: "chevre",
+  "foie-gras": "foie gras",
+  dessert: "dessert|tarte aux|gateau|chocolat|fraise|framboise|crumble|galette|buche|patisserie|clafoutis|tiramisu",
+  apero: "apero|aperitif|tapas|chips|olive|tapenade|toast|amuse|blini",
+  mijote: "daube|mijote|ragout|bourguignon|blanquette|pot-au-feu|tajine|civet|cassoulet|navarin|osso",
+  grillade: "barbecue|bbq|grillade|grille|plancha|brochette",
+  mediterraneen: "ratatouille|provencal|tian|pistou|aioli|nicoise|aubergine|courgette|tapenade|bouillabaisse|couscous",
+  "pates-pizza": "pizza|pates|lasagne|spaghetti|bolognaise|risotto|carbonara|gnocchi|tagliatelle|penne|ravioli",
+  champignons: "champignon|cepe|morille|girolle|truffe",
+  salade: "salade|crudite|legume|vege|quiche|tarte salee|gaspacho",
+  "epice-asiat": "curry|thai|asiatique|chinois|indien|epice|wok|tandoori|couscous|mexicain|tacos|japonais|sushi"
+};
+const PLAT_CHIPS = [["Viande rouge","boeuf"],["Agneau","agneau"],["Volaille","volaille"],["Canard","canard"],["Poisson","poisson"],["Fruits de mer","fruits-de-mer"],["Fromages","fromage"],["Raclette / fondue","fromage-fondu"],["Pizza / pâtes","pates-pizza"],["Barbecue","grillade"],["Plat mijoté","mijote"],["Apéro","apero"],["Épicé / asiatique","epice-asiat"],["Dessert","dessert"]];
+function tagsPlat(txt){
+  const t = norm(txt), out = [];
+  for (const [tag, mots] of Object.entries(PLAT_MOTS)) if (new RegExp(mots).test(t)) out.push(tag);
+  return out;
+}
+function tagsVin(it){
+  if (Array.isArray(it.tags) && it.tags.length) return it.tags;
+  const r = norm(it.region), n = norm(it.nom), c = it.couleur, T = new Set();
+  const add = (...a) => a.forEach(x => T.add(x));
+  if (/monbazillac|montbazillac|sauternes|jurancon|loupiac|layon|barsac|vendanges tardives|muscat|liquoreux|moelleux/.test(n)){ add("foie-gras", "dessert", "fromage"); return [...T]; }
+  if (c === "Rouge"){
+    add("boeuf", "agneau", "fromage", "grillade");
+    if (/bordeaux/.test(r)) add("canard", "champignons");
+    if (/bourgogne/.test(r)) add("volaille", "mijote", "champignons");
+    if (/rhone/.test(r)) add("mijote", "gibier", "mediterraneen");
+    if (/beaujolais/.test(r)) add("charcuterie", "volaille", "porc", "pates-pizza");
+    if (/languedoc/.test(r)) add("gibier", "mijote", "canard");
+    if (/provence|corse/.test(r)) add("mediterraneen");
+    if (/loire/.test(r)) add("porc", "charcuterie", "volaille");
+    if (/sud-ouest/.test(r)) add("canard", "mijote");
+    if (/italie|espagne/.test(r)) add("pates-pizza", "charcuterie");
+  } else if (c === "Blanc"){
+    add("poisson", "fruits-de-mer", "chevre", "salade");
+    if (/bourgogne/.test(r)) add("volaille", "fromage", "champignons");
+    if (/jura|savoie/.test(r)) add("fromage-fondu");
+    if (/alsace/.test(r)) add("porc", "epice-asiat", "fromage");
+    if (/provence|corse|languedoc/.test(r)) add("mediterraneen", "apero");
+    if (/loire|bordeaux/.test(r)) add("apero");
+  } else if (c === "Rosé"){
+    add("apero", "salade", "grillade", "mediterraneen", "epice-asiat", "charcuterie");
+  } else if (c === "Pétillant"){
+    if (/lambrusco/.test(n)) add("charcuterie", "pates-pizza", "apero");
+    else add("apero", "fruits-de-mer", "dessert");
+  } else add("apero");
+  return [...T];
+}
+const accordsVin = it => (Array.isArray(it.accords) && it.accords.length) ? it.accords : tagsVin(it).slice(0, 5).map(t => ACC_LIB[t]).filter(Boolean);
+
+function chercherAccords(){
+  const txt = $("plat").value, tags = new Set(tagsPlat(txt));
+  S.platTags.forEach(t => tags.add(t));
+  $("platChips").innerHTML = PLAT_CHIPS.map(([l, t]) => `<button type="button" data-pt="${t}" aria-pressed="${S.platTags.has(t)}">${l}</button>`).join("");
+  const res = $("accRes");
+  if (!tags.size){
+    res.innerHTML = txt.trim()
+      ? `<div class="vide">Je ne reconnais pas ce plat. Essaie avec son ingrédient principal (agneau, poisson, fromage…) ou touche une catégorie.</div>`
+      : `<div class="vide">Écris ton plat ou touche une catégorie.</div>`;
+    return;
+  }
+  const scores = S.items.vins.filter(it => qte(it) > 0).map(it => {
+    const tv = tagsVin(it), communs = tv.filter(t => tags.has(t));
+    let sc = communs.length;
+    const acc = norm((it.accords || []).join(" "));
+    if (txt.trim().length > 2 && norm(txt).split(/\s+/).some(m => m.length > 3 && acc.includes(m))) sc += 1.5;
+    if (it.conserver) sc -= 0.5;
+    return {it, sc, communs};
+  }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc);
+  if (!scores.length){ res.innerHTML = `<div class="vide">Aucun vin de votre cave ne colle vraiment avec ce plat.</div>`; return; }
+  const top = scores.slice(0, 6);
+  res.innerHTML = `<div class="acc-titre">Dans votre cave</div>` + top.map(({it, communs}) => `<div class="acc-item">${vignette(it, "vins")}<div><div class="t">${esc(it.nom)}${it.millesime ? " " + esc(it.millesime) : ""}</div><div class="r">${esc(it.emplacement || "")} · ${communs.map(t => ACC_LIB[t]).filter(Boolean).slice(0, 2).join(", ") || "accord conseillé"}${it.conserver ? " · à conserver" : ""}</div></div></div>`).join("");
+}
+function ouvrirAccords(){ S.platTags = new Set(); $("plat").value = ""; chercherAccords(); $("voile3").classList.add("on"); setTimeout(() => $("plat").focus(), 60); }
+function fermerAccords(){ $("voile3").classList.remove("on"); }
 
 /* ---------- Apéros presque vides ---------- */
 async function marquerBas(id, valeur){
@@ -620,6 +748,9 @@ function ouvrir(item){
     type: item ? item.type || null : (S.type || "Apéritif"),
     biere: item ? item.biere || null : "Blonde"
   };
+  const fa = $("f-accords");
+  if (vin && item){ fa.hidden = false; fa.innerHTML = `<h3>Accords conseillés</h3><ul>${accordsVin(item).map(a => `<li>${esc(a)}</li>`).join("")}</ul>`; }
+  else { fa.hidden = true; fa.innerHTML = ""; }
   $("f-titre").textContent = item ? (vin ? "Modifier le vin" : "Modifier l'apéro") : (vin ? "Ajouter un vin" : "Ajouter un apéro");
   $("f-nom").value = item ? item.nom || "" : "";
   $("f-nom").placeholder = vin ? "Ex. Château Lagrange" : "Ex. Pastis, Whisky Nikka, Porto…";
@@ -667,7 +798,7 @@ async function enregistrer(){
     let r;
     if (S.edit){
       delete pending[S.edit.id];
-      r = await sb.from(TABLE).update({data, updated_at: new Date().toISOString()}).eq("id", S.edit.id);
+      r = await sb.from(TABLE).update({data: Object.assign(sansId(S.edit), data), updated_at: new Date().toISOString()}).eq("id", S.edit.id);
     } else {
       r = await sb.from(TABLE).insert({kind: KIND[S.tab], data});
     }
@@ -735,6 +866,11 @@ $("f-annuler").addEventListener("click", fermer);
 $("f-suppr").addEventListener("click", supprimer);
 $("form").addEventListener("submit", e => { e.preventDefault(); enregistrer(); });
 $("voile").addEventListener("click", e => { if (e.target === $("voile")) fermer(); });
+$("accordBtn").addEventListener("click", ouvrirAccords);
+$("accFermer").addEventListener("click", fermerAccords);
+$("voile3").addEventListener("click", e => { if (e.target === $("voile3")) fermerAccords(); });
+$("plat").addEventListener("input", chercherAccords);
+$("platChips").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (!b) return; const t = b.dataset.pt; S.platTags.has(t) ? S.platTags.delete(t) : S.platTags.add(t); chercherAccords(); });
 $("voile2").addEventListener("click", e => { if (e.target === $("voile2")) fermerDeplacer(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape"){ fermer(); if (dep) fermerDeplacer(); } });
 
