@@ -1,5 +1,5 @@
 // Muscu — service worker : l'appli fonctionne sans réseau une fois ouverte une première fois.
-const CACHE = "muscu-v8";
+const CACHE = "muscu-v9";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {

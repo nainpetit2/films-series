@@ -196,6 +196,15 @@ nav.tabs button.on::before{content:"";position:absolute;top:-6px;left:32%;right:
 .b-change{border-color:rgba(46,91,158,.25)}
 nav.tabs button.new::after{content:"";position:absolute;top:6px;left:calc(50% + 8px);width:8px;height:8px;border-radius:50%;background:var(--accent)}
 nav.tabs button{font-size:10.5px}
+
+.seg .tick.sk{background:#B8B1A5}
+.prio{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--muted);margin:0 4px 10px}
+.prio .plab{flex:none;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:1px}
+.p-ess .plab{background:#F6E0D3;color:#A8471B}.p-imp .plab{background:var(--blue-bg);color:var(--blue)}.p-opt .plab{background:var(--card2);color:var(--muted)}
+.skipbtn{width:100%;height:46px;border-radius:16px;margin-top:8px;color:var(--muted);font-weight:650;border:1.5px dashed var(--line);background:transparent}
+.skipped{background:var(--card2);border-radius:18px;padding:14px;text-align:center;color:var(--muted);font-weight:600;margin-top:6px}
+.skipwarn{background:#FBE9DE;color:#7A3412;border-radius:14px;padding:12px;margin-top:10px;font-size:14px;line-height:1.45}
+.sq.skip{background:repeating-linear-gradient(45deg,#EDE8E0,#EDE8E0 4px,#E0D9CE 4px,#E0D9CE 8px);color:#B0A99D}
 </style>
 </head>
 <body>
@@ -245,6 +254,12 @@ var SESS={
   {id:"C1",n:"Curl marteau",s:3,lo:10,hi:12,kg:10,t:"db",rest:45,note:"par haltère"},
   {id:"C2",n:"Extension triceps nuque (1 haltère)",s:3,lo:10,hi:15,kg:14,t:"db",rest:45},
   {id:"D",n:"Roulette abdo (ou crunch lesté)",s:3,lo:10,hi:15,kg:null,t:"bw",rest:45}]}
+};
+var PRIO={
+ J:{lvl:"ess",lab:"Essentielle",txt:"Ta seule séance jambes de la semaine. À ne jamais sauter."},
+ HA:{lvl:"ess",lab:"Essentielle",txt:"Développé couché et rowing : la base des pecs et du dos."},
+ HB:{lvl:"imp",lab:"Importante",txt:"Épaules et bras. À garder si possible ; à sauter en 2e choix seulement."},
+ HC:{lvl:"opt",lab:"Peut sauter",txt:"Séance de volume en plus : la première à sauter si tu manques de temps."}
 };
 var PH={R:{n:"Reprise",c:"R"},C:{n:"Construction",c:"C"},D:{n:"Deload",c:"D"},S:{n:"Sèche",c:"S"},F:{n:"Finition",c:"F"}};
 var PCODES="RCCCCDCCCCCDCCSSSSSDSSSSSFFFFFFF".split("");
@@ -378,7 +393,7 @@ function suggestion(wi,s,e){
 /* ================= État d'interface ================= */
 function todayWeekIdx(){var t=new Date();t.setHours(12,0,0,0);var i=Math.floor((t-START)/(7*864e5));return Math.max(0,Math.min(WEEKS.length-1,i));}
 function defaultSess(){var d=new Date().getDay();return {1:"HA",2:"J",3:"HB",4:"HB",5:"HC",6:"HC",0:"HC"}[d];}
-function firstUndone(wi){var wk=WEEKS[wi].key;for(var i=0;i<SESS_ORDER.length;i++){var l=getLog(wk,SESS_ORDER[i]);if(!(l&&l.done))return SESS_ORDER[i];}return SESS_ORDER[SESS_ORDER.length-1];}
+function firstUndone(wi){var wk=WEEKS[wi].key;for(var i=0;i<SESS_ORDER.length;i++){var l=getLog(wk,SESS_ORDER[i]);if(!(l&&(l.done||l.skipped)))return SESS_ORDER[i];}return SESS_ORDER[SESS_ORDER.length-1];}
 var userMoved=false;
 var state={tab:"seance",wi:todayWeekIdx(),s:"HA"};
 state.s=firstUndone(state.wi);
@@ -438,7 +453,9 @@ var ICON_T='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 function vSeance(){
   var w=WEEKS[state.wi], S=SESS[state.s], log=getLog(w.key,state.s);
   var h=band();
-  h+='<div class="seg">'+SESS_ORDER.map(function(k){var l=getLog(w.key,k);return '<button class="'+(k===state.s?'on':'')+'" data-act="sess" data-s="'+k+'">'+(l&&l.done?'<span class="tick" aria-label="faite"></span>':'')+SESS[k].name+'</button>';}).join("")+'</div>';
+  h+='<div class="seg">'+SESS_ORDER.map(function(k){var l=getLog(w.key,k);return '<button class="'+(k===state.s?'on':'')+'" data-act="sess" data-s="'+k+'">'+(l&&l.done?'<span class="tick" aria-label="faite"></span>':(l&&l.skipped?'<span class="tick sk" aria-label="passée"></span>':''))+SESS[k].name+'</button>';}).join("")+'</div>';
+  var P=PRIO[state.s];
+  h+='<div class="prio p-'+P.lvl+'"><span class="plab">'+P.lab+'</span><span>'+P.txt+'</span></div>';
   h+='<div class="note">'+NOTE[w.p]+'</div>';
   S.ex.forEach(function(e,idx){
     var sg=suggestion(state.wi,state.s,e), x=exData(log,e)||{}, n=nSets(e,w.p), reps=x.reps||[];
@@ -454,9 +471,13 @@ function vSeance(){
     for(var i=0;i<n;i++)h+='<div class="field f-rep"><label>Série '+(i+1)+'</label><input inputmode="numeric" pattern="[0-9]*" data-k="r" data-i="'+i+'" data-e="'+e.id+'" value="'+esc(reps[i]||"")+'" placeholder="'+e.hi+'" aria-label="Série '+(i+1)+' reps, '+esc(e.n)+'"></div>';
     h+='</div></div>';
   });
-  var done=log&&log.done;
-  h+='<button class="donebtn'+(done?' is':'')+'" data-act="done">'+(done?'✓ Séance faite':'Terminer la séance')+'</button>';
-  h+='<div class="note" style="margin-top:12px;text-align:center">Semaine à 3 séances : saute Haut C, jamais Jambes.</div>';
+  var done=log&&log.done, skipped=log&&log.skipped;
+  if(skipped)h+='<div class="skipped">Séance passée cette semaine.<button class="btn" data-act="unskip">Annuler : je la fais finalement</button></div>';
+  else{
+    h+='<button class="donebtn'+(done?' is':'')+'" data-act="done">'+(done?'✓ Séance faite':'Terminer la séance')+'</button>';
+    if(!done)h+='<button class="skipbtn" data-act="skip">Passer cette séance</button>';
+  }
+  h+='<div class="note" style="margin-top:12px;text-align:center">Pas le temps pour tout ? Ordre pour sauter : <b>Haut C</b>, puis Haut B. Jamais Jambes.</div>';
   return h;
 }
 function vCal(){
@@ -465,7 +486,7 @@ function vCal(){
   WEEKS.forEach(function(w){
     var m=DATA.meas[w.key], avg=m?avgW(m):null;
     h+='<div class="calrow'+(w.i===cur?' cur':'')+'"><div class="dt">'+fmtD(w.date)+'</div><div class="pl ph-'+w.p+'">'+({R:"Reprise",C:"Constr.",D:"Deload",S:"Sèche",F:"Finition"})[w.p]+'</div>'+
-      SESS_ORDER.map(function(k){var l=getLog(w.key,k);var lab={HA:"A",J:"J",HB:"B",HC:"C"}[k];return '<button class="sq'+(l&&l.done?' done':'')+'" data-act="go" data-w="'+w.i+'" data-s="'+k+'" aria-label="'+SESS[k].name+' semaine du '+fmtD(w.date)+'">'+lab+'</button>';}).join("")+
+      SESS_ORDER.map(function(k){var l=getLog(w.key,k);var lab={HA:"A",J:"J",HB:"B",HC:"C"}[k];return '<button class="sq'+(l&&l.done?' done':(l&&l.skipped?' skip':''))+'" data-act="go" data-w="'+w.i+'" data-s="'+k+'" aria-label="'+SESS[k].name+' semaine du '+fmtD(w.date)+'">'+lab+'</button>';}).join("")+
       '<div class="wt">'+(avg!=null?fmtKg(avg):'<span style="color:#C9C4BA">—</span>')+'</div></div>';
   });
   h+='</div><div class="muted" style="margin:10px 2px">Touche une case pour ouvrir la séance. Deload : 28 déc., 8 févr., 5 avr.</div>';
@@ -533,6 +554,19 @@ function vInfo(){
   return h;
 }
 
+
+function openSkip(){
+  var P=PRIO[state.s], S=SESS[state.s], w=WEEKS[state.wi];
+  var others=SESS_ORDER.filter(function(k){var l=getLog(w.key,k);return k!==state.s&&!(l&&(l.done||l.skipped));});
+  var hcFree=others.indexOf("HC")>=0;
+  var html='<div style="font-family:var(--display);font-weight:700;font-size:21px">Passer '+S.name+' ?</div>';
+  if(P.lvl==="opt")html+='<div class="muted" style="margin-top:6px">C\'est la bonne séance à sauter : elle apporte du volume en plus, mais l\'essentiel est fait par Haut A, Jambes et Haut B.</div>';
+  else if(P.lvl==="imp")html+='<div class="muted" style="margin-top:6px">'+(hcFree?'Si tu ne peux faire que 3 séances cette semaine, saute plutôt <b>Haut C</b> et fais Haut B à sa place.':'Haut C est déjà faite ou passée : tu peux sauter Haut B, mais ne saute pas plus d\'une séance sur la semaine si possible.')+'</div>';
+  else html+='<div class="skipwarn"><b>Séance essentielle.</b> '+(state.s==="J"?'C\'est ta seule séance jambes : la sauter, c\'est zéro travail des jambes cette semaine.':'Développé couché et rowing sont tes deux exercices principaux du haut du corps.')+(hcFree?' Fais-la à la place de <b>Haut C</b>, même un autre jour.':' Si possible, décale-la plutôt que de la sauter.')+'</div>';
+  if(P.lvl==="ess")html+='<button class="btn primary" data-act="closeModal" style="margin-top:14px">Je la garde</button><button class="btn" data-act="doSkip">Passer quand même</button>';
+  else html+='<button class="btn primary" data-act="doSkip" style="margin-top:14px">Oui, passer cette séance</button><button class="btn" data-act="closeModal">Annuler</button>';
+  openModal(html);
+}
 /* ================= Bilans tous les 15 jours ================= */
 var LS_SEEN="muscu_jt_bilan_seen_v1";
 var KEYLIFTS=[["HA","A1","Développé couché","développé couché haltères"],["HA","A2","Rowing barre","rowing haltère 1 bras lourd"],["J","1","Squat","squat avec pause de 2 s en bas"],["J","2","RDL","RDL aux haltères"],["HB","A1","Développé militaire","développé haltères assis"]];
@@ -553,13 +587,16 @@ function analyse(k){
   var base=wk[0].p==="D"?wk[1].base:wk[0].base; if(base==="R")base="C";
   var R={k:k,good:[],bad:[],change:[],odd:[],next:[],stats:{}};
   // assiduité
-  var done=0,planned=0,legsMissed=0,emptyDone=0;
-  wk.forEach(function(w){SESS_ORDER.forEach(function(s){planned++;var l=getLog(w.key,s);if(l&&l.done){done++;var any=SESS[s].ex.some(function(e){return filled(exData(l,e));});if(!any)emptyDone++;}else if(s==="J")legsMissed++;});});
+  var done=0,planned=0,legsMissed=0,emptyDone=0,skippedN=0,skippedEss=[];
+  wk.forEach(function(w){SESS_ORDER.forEach(function(s){planned++;var l=getLog(w.key,s);if(l&&l.skipped){skippedN++;if(PRIO[s].lvl!=="opt")skippedEss.push(SESS[s].name);}
+    if(l&&l.done){done++;var any=SESS[s].ex.some(function(e){return filled(exData(l,e));});if(!any)emptyDone++;}else if(s==="J")legsMissed++;});});
+  if(skippedN&&!skippedEss.length)R.good.push(skippedN===1?"Une séance passée, et c'était la bonne (Haut C).":skippedN+" séances passées, uniquement des Haut C : bon choix.");
+  if(skippedEss.length)R.bad.push("Séance"+(skippedEss.length>1?"s":"")+" importante"+(skippedEss.length>1?"s":"")+" passée"+(skippedEss.length>1?"s":"")+" : "+skippedEss.join(", ")+". La prochaine fois, saute plutôt Haut C.");
   R.stats.done=done;R.stats.planned=planned;
   if(done>=7)R.good.push("Assiduité au top : "+done+"/"+planned+" séances.");
   else if(done>=6)R.good.push("Bonne assiduité : "+done+"/"+planned+" séances (le minimum visé est 6).");
   else R.bad.push("Seulement "+done+"/"+planned+" séances. En dessous de 6 sur 15 jours, la progression ralentit nettement.");
-  if(legsMissed>0&&done>0)R.bad.push("Séance Jambes sautée "+legsMissed+" fois. C'est celle à garder : saute plutôt Haut C.");
+  if(legsMissed>0&&done>0&&skippedEss.indexOf("Jambes")<0)R.bad.push("Séance Jambes non faite "+legsMissed+" fois. C'est celle à garder : saute plutôt Haut C.");
   if(emptyDone>0)R.odd.push(emptyDone+" séance"+(emptyDone>1?"s":"")+" marquée"+(emptyDone>1?"s":"")+" faite"+(emptyDone>1?"s":"")+" sans aucune charge notée : l'appli ne peut pas te proposer les bonnes charges.");
   // poids
   var wa=[wAvgWeek(a),wAvgWeek(b)].filter(function(v){return v!=null;});
@@ -698,6 +735,9 @@ document.addEventListener("click",function(ev){
   else if(a==="wnext"&&state.wi<WEEKS.length-1){state.wi++;saveUI();render();}
   else if(a==="sess"){state.s=b.getAttribute("data-s");saveUI();render();}
   else if(a==="go"){state.wi=+b.getAttribute("data-w");state.s=b.getAttribute("data-s");state.tab="seance";saveUI();render();window.scrollTo(0,0);}
+  else if(a==="skip"){openSkip();}
+  else if(a==="doSkip"){var w=WEEKS[state.wi];var l=ensureLog(w.key,state.s);l.skipped=true;l.done=false;touchLog(logKey(w.key,state.s));closeModal();var nx=firstUndone(state.wi);var was=state.s;state.s=nx;render();window.scrollTo(0,0);toast(SESS[was].name+" passée");}
+  else if(a==="unskip"){var w2=WEEKS[state.wi];var l2=ensureLog(w2.key,state.s);l2.skipped=false;touchLog(logKey(w2.key,state.s));render();}
   else if(a==="done"){var w=WEEKS[state.wi];var l=ensureLog(w.key,state.s);l.done=!l.done;touchLog(logKey(w.key,state.s));render();if(l.done)toast("Séance enregistrée");}
   else if(a==="timer")startTimer(+b.getAttribute("data-sec"),b.getAttribute("data-n"));
   else if(a==="bprev"){bilanK=Math.max(0,(bilanK||0)-1);render();}
