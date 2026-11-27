@@ -1,5 +1,20 @@
 /* Mes films & séries — TMDB + Supabase — version 5 */
 "use strict";
+/* ---- mise à jour automatique : recharge si une version plus récente est en ligne ---- */
+const APPV=((document.currentScript&&document.currentScript.src)||"").match(/[?&]v=(\d+)/)?.[1]||null;
+async function checkUpdate(){
+  if(!APPV) return;
+  try{
+    const r=await fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}); if(!r.ok) return;
+    const m=(await r.text()).match(/app\.js\?v=(\d+)/); if(!m||m[1]===APPV) return;
+    let done=null; try{done=sessionStorage.getItem("reloadedTo")}catch(e){}
+    if(done===m[1]) return;
+    try{sessionStorage.setItem("reloadedTo",m[1])}catch(e){}
+    location.replace(location.pathname+"?v="+m[1]+location.hash);
+  }catch(e){}
+}
+checkUpdate();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
 const PLATFORMS=["Netflix","Prime Video","Disney+","Canal+","Apple TV+","HBO Max","Paramount+","France.tv","Arte","TF1+","M6+","Au cinéma","Location / achat","Pas dispo en streaming","Autre"];
 const PICK=["Netflix","Prime Video","Disney+","Canal+","Apple TV+","HBO Max","Paramount+","France.tv","Arte","TF1+","M6+","Au cinéma","Autre"];
 const PCOL={"Netflix":"#E50914","Prime Video":"#1399FF","Disney+":"#1A3FC4","Canal+":"#1A1A1A","Apple TV+":"#3A3A3C","HBO Max":"#5B2BC0","Paramount+":"#0064FF","France.tv":"#2B59F2","Arte":"#E8571E","TF1+":"#0B3BA8","M6+":"#2E2E8F","Au cinéma":"#C8322F","Location / achat":"#6B5E50","Pas dispo en streaming":"#9A8F84","Autre":"#7A7067"};
