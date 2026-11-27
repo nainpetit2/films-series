@@ -147,7 +147,12 @@ async function fetchDetails(mediaType,tmdbId){
       director:(d.created_by||[]).map(c=>c.name).slice(0,2).join(", "),
       keywords:(d.keywords?.results||[]).map(k=>k.name).slice(0,20),
       tmdbVote:d.vote_count>20?Math.round(d.vote_average*10)/10:null,imdbId:d.external_ids?.imdb_id||null,
-      tmdbSeasons:(()=>{const today=new Date().toISOString().slice(0,10), nx=d.next_episode_to_air;
+      epV:2,
+      tmdbSeasons:(()=>{const today=new Date().toISOString().slice(0,10), nx=d.next_episode_to_air, la=d.last_episode_to_air;
+        if(la&&la.season_number>0&&la.air_date&&la.air_date<=today){
+          return (d.seasons||[]).filter(s=>s.season_number>0&&s.episode_count>0&&s.season_number<=la.season_number)
+            .map(s=>({n:s.season_number,eps:s.season_number===la.season_number?Math.min(s.episode_count,la.episode_number):s.episode_count}));
+        }
         return (d.seasons||[]).filter(s=>s.season_number>0&&s.episode_count>0&&(s.air_date?s.air_date<=today:!d.in_production))
           .map(s=>({n:s.season_number,eps:nx&&nx.season_number===s.season_number&&nx.episode_number>1?Math.min(s.episode_count,nx.episode_number-1):s.episode_count}))
           .filter(s=>!(nx&&nx.season_number===s.n&&nx.episode_number===1));})(),
@@ -178,7 +183,9 @@ async function refreshItem(id,manual){
     const d=await fetchDetails(it.mediaType,it.tmdbId);
     const om=await fetchOmdb(d.imdbId);
     const f={...d,...om}; delete f.type;
-    if(d.tmdbSeasons){f.seasons=mergeSeasons(it.seasons,d.tmdbSeasons);
+    if(d.tmdbSeasons){const before=seriesStats(it);f.seasons=mergeSeasons(it.seasons,d.tmdbSeasons);
+      const after=seriesStats({seasons:f.seasons});
+      if(before.tot>0&&before.seen>=before.tot&&after.tot>before.tot){f.newEpAt=Date.now();toast(`Nouvel épisode de ${it.title} !`)}
       const oldMax=Math.max(0,...(it.seasons||[]).map(x=>x.n)), newMax=Math.max(0,...d.tmdbSeasons.map(x=>x.n));
       if(it.seasons?.length&&newMax>oldMax) toast(`Nouvelle saison de ${it.title} disponible !`);}
     delete f.tmdbSeasons;
@@ -199,17 +206,19 @@ function statusOf(it){
   const {tot,seen}=seriesStats(it);
   if(!tot||!seen) return "avoir";
   if(seen<tot) return "encours";
-  return it.nextAir&&it.nextAir.date>=new Date().toISOString().slice(0,10)?"encours":"vu";
+  return it.ongoing===true||(it.nextAir&&it.nextAir.date>=new Date().toISOString().slice(0,10))?"ajour":"vu";
 }
 function platformOf(it){if(it.platform!==undefined)return it.platform||"";return it.platformManual||(["Location / achat","Pas dispo en streaming"].includes(it.autoPlatform)?"":it.autoPlatform)||""}
+function isNewEp(it){return !!it.newEpAt&&statusOf(it)==="encours"&&Date.now()-it.newEpAt<60*864e5}
+function ongKey(it){return isNewEp(it)?1e14+it.newEpAt:(it.updatedAt||it.createdAt||0)}
 function nextEp(it){for(const s of (it.seasons||[])){const w=new Set(s.w||[]);for(let e=1;e<=(s.eps||0);e++)if(!w.has(e))return {n:s.n,e}}return null}
 function hashCol(s){let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;const hues=[352,20,200,160,260,30,330,210];const hu=hues[h%hues.length];return `linear-gradient(160deg,hsl(${hu} 45% 38%),hsl(${(hu+30)%360} 50% 18%))`}
 function posterHTML(it,size="w342"){
   return it.poster?`<img src="${IMG}${size}${esc(it.poster)}" alt="" loading="lazy">`:`<div class="ph" style="background:${hashCol(it.title)}"><small>${it.type==="serie"?"Série":"Film"}${it.year?" · "+it.year:""}</small>${esc(it.title)}</div>`;
 }
 function dateFr(d){try{return new Date(d).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}catch(e){return d}}
-const FILTERS={film:[["avoir","À voir"],["vu","Vus"],["tous","Tous"]],serie:[["encours","En cours"],["avoir","À voir"],["pause","En pause"],["arrete","Arrêtées"],["vu","Terminées"],["tous","Toutes"]]};
-const STLABEL={avoir:"À voir",encours:"En cours",pause:"En pause",arrete:"Arrêtée",vu:"Terminée"};
+const FILTERS={film:[["avoir","À voir"],["vu","Vus"],["tous","Tous"]],serie:[["encours","En cours"],["ajour","À jour"],["avoir","À voir"],["pause","En pause"],["arrete","Arrêtées"],["vu","Terminées"],["tous","Toutes"]]};
+const STLABEL={avoir:"À voir",encours:"En cours",ajour:"À jour",pause:"En pause",arrete:"Arrêtée",vu:"Terminée"};
 const CHECK=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 
 /* ================= list ================= */
@@ -423,9 +432,11 @@ function renderInner(){
   if(isDash){ $("#searchWrap").classList.add("hidden"); $("#empty").classList.add("hidden"); $("#resume").classList.add("hidden"); renderStats(); renderDash(); if(openId&&mode==="detail") renderDetail(); return; }
   const ofTab=items.filter(i=>i.type===tab);
   renderStats();
-  const ong=items.filter(i=>i.type==="serie"&&statusOf(i)==="encours").sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const ong=items.filter(i=>i.type==="serie"&&statusOf(i)==="encours").sort((a,b)=>ongKey(b)-ongKey(a));
   $("#resume").classList.toggle("hidden",!ong.length||tab!=="serie");
-  setKeyed($("#rail"),ong.map(it=>{const s=seriesStats(it),nx=nextEp(it);return {key:it.id,html:`<div class="rc" data-id="${it.id}"><div class="poster">${posterHTML(it,"w154")}</div><div class="i"><div class="t">${esc(it.title)}</div><div class="nx">${nx?`Prochain : <b>S${nx.n} · É${nx.e}</b>`:it.nextAir?`À jour · <b>S${it.nextAir.s}É${it.nextAir.e} le ${esc(dateFr(it.nextAir.date))}</b>`:""}${platformOf(it)?` · ${esc(platformOf(it))}`:""}</div><div class="prog"><i style="width:${Math.round(s.pct*100)}%"></i></div><div class="pl rl"><span>${s.seen}/${s.tot} ép.</span>${railRates(it)}</div>${nx?`<button class="go" data-next="${it.id}">✓ S${nx.n}É${nx.e} vu</button>`:""}</div></div>`}}));
+  const railEl=$("#rail"), firstKey=ong[0]?.id||"";
+  if(railEl._first!==firstKey){railEl._first=firstKey;requestAnimationFrame(()=>{railEl.scrollLeft=0;updArrows(railEl)})}
+  setKeyed($("#rail"),ong.map(it=>{const s=seriesStats(it),nx=nextEp(it);return {key:it.id,html:`<div class="rc" data-id="${it.id}"><div class="poster">${posterHTML(it,"w154")}</div><div class="i">${isNewEp(it)?`<span class="newep">Nouvel épisode</span>`:""}<div class="t">${esc(it.title)}</div><div class="nx">${nx?`Prochain : <b>S${nx.n} · É${nx.e}</b>`:it.nextAir?`À jour · <b>S${it.nextAir.s}É${it.nextAir.e} le ${esc(dateFr(it.nextAir.date))}</b>`:""}${platformOf(it)?` · ${esc(platformOf(it))}`:""}</div><div class="prog"><i style="width:${Math.round(s.pct*100)}%"></i></div><div class="pl rl"><span>${s.seen}/${s.tot} ép.</span>${railRates(it)}</div>${nx?`<button class="go" data-next="${it.id}">✓ S${nx.n}É${nx.e} vu</button>`:""}</div></div>`}}));
   const inPlat=ofTab.filter(i=>!plat||(plat==="__none"?!platformOf(i):platformOf(i)===plat));
   const counts={}; inPlat.forEach(i=>{const s=statusOf(i);counts[s]=(counts[s]||0)+1});counts.tous=inPlat.length;
   $("#filters").innerHTML=FILTERS[tab].map(([k,l])=>`<button class="chip ${filter===k?"on":""}" data-f="${k}">${l}<span class="n">${counts[k]||0}</span></button>`).join("");
@@ -440,11 +451,11 @@ function renderInner(){
   const q=query.trim().toLowerCase();
   const list=inStat.filter(i=>!plat||(plat==="__none"?!platformOf(i):platformOf(i)===plat)).filter(i=>!q||(i.title+" "+(i.originalTitle||"")+" "+platformOf(i)).toLowerCase().includes(q));
   list.sort((a,b)=>{if(filter==="avoir"&&RECO.size){const d=(RECO.get(b.id)?.score||0)-(RECO.get(a.id)?.score||0);if(d)return d}
-    if(tab==="serie"&&filter==="tous"){const o={encours:0,pause:1,avoir:2,arrete:3,vu:4};const d=o[statusOf(a)]-o[statusOf(b)];if(d)return d}return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)});
+    if(tab==="serie"&&filter==="tous"){const o={encours:0,ajour:1,pause:2,avoir:3,arrete:4,vu:5};const d=o[statusOf(a)]-o[statusOf(b)];if(d)return d}return ongKey(b)-ongKey(a)});
   setKeyed($("#grid"),list.map(it=>{
     const st=statusOf(it), s=it.type==="serie"?seriesStats(it):null, p=platformOf(it);
     return {key:it.id,html:`<button class="card" data-id="${it.id}"><div class="poster">${posterHTML(it)}${p?`<span class="badge" style="background:${PCOL[p]||"rgba(20,18,16,.7)"}">${esc(p)}</span>`:""}${it.myRating!=null?`<span class="my">★ ${fmt(it.myRating)}</span>`:st==="avoir"&&RECO.get(it.id)?`<span class="rec">Pour toi ${fmt(RECO.get(it.id).score)}★</span>`:""}${st==="vu"?`<span class="seen">${CHECK}</span>`:st==="pause"?`<span class="seen st"><svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:-1px"><rect x="1.5" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/><rect x="6.1" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/></svg></span>`:st==="arrete"?`<span class="seen st">✕</span>`:""}</div>
-      <div class="meta"><div class="t">${esc(it.title)}</div><div class="y">${[it.year,it.genres?.[0]?esc(it.genres[0]):"",it.type==="serie"&&it.seasons?.length?`${it.seasons.length} saison${it.seasons.length>1?"s":""}`:""].filter(Boolean).join(" · ")}</div>
+      <div class="meta">${isNewEp(it)?`<span class="newep">Nouvel épisode</span>`:""}${st==="ajour"&&it.nextAir?`<span class="newep soon">S${it.nextAir.s}É${it.nextAir.e} le ${esc(dateFr(it.nextAir.date))}</span>`:""}<div class="t">${esc(it.title)}</div><div class="y">${[it.year,it.genres?.[0]?esc(it.genres[0]):"",it.type==="serie"&&it.seasons?.length?`${it.seasons.length} saison${it.seasons.length>1?"s":""}`:""].filter(Boolean).join(" · ")}</div>
       ${ratesHTML(it)}${s&&s.tot&&st!=="avoir"?`<div class="prog ${s.seen>=s.tot?"done":""}"><i style="width:${Math.round(s.pct*100)}%"></i></div><div class="pl">${s.seen}/${s.tot} épisodes</div>`:""}</div></button>`}}));
   const em=$("#empty");
   if(loaded&&!list.length){em.classList.remove("hidden");em.innerHTML=ofTab.length?`<b>Rien ici</b>Aucun titre avec ces filtres.`:`<b>${tab==="film"?"Aucun film":"Aucune série"} pour l'instant</b>Touche « Ajouter » et cherche un titre : affiche, plateformes et saisons arrivent toutes seules.`}
@@ -543,7 +554,7 @@ function renderDetail(){
   </div></div>
   ${isS&&it.nextAir?`<span class="nextair">Prochain épisode S${it.nextAir.s}É${it.nextAir.e} le ${esc(dateFr(it.nextAir.date))}</span>`:""}
   ${it.synopsis?`<div class="syn">${esc(it.synopsis)}</div>`:""}
-  ${isS?`<div class="sstate"><button data-sst="" class="${!it.sState?"on":""}">${st==="avoir"?"À voir":st==="vu"?"Terminée":"Je regarde"}</button><button data-sst="pause" class="${it.sState==="pause"?"on":""}"><svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:-1px"><rect x="1.5" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/><rect x="6.1" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/></svg> En pause</button><button data-sst="arrete" class="${it.sState==="arrete"?"on":""}">✕ Arrêtée</button></div>`:""}
+  ${isS?`<div class="sstate"><button data-sst="" class="${!it.sState?"on":""}">${st==="avoir"?"À voir":st==="vu"?"Terminée":st==="ajour"?"À jour":"Je regarde"}</button><button data-sst="pause" class="${it.sState==="pause"?"on":""}"><svg width="10" height="10" viewBox="0 0 10 10" style="vertical-align:-1px"><rect x="1.5" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/><rect x="6.1" y="1" width="2.4" height="8" rx=".6" fill="currentColor"/></svg> En pause</button><button data-sst="arrete" class="${it.sState==="arrete"?"on":""}">✕ Arrêtée</button></div>`:""}
   ${recoBlock(it)}
   ${st!=="avoir"||it.myRating!=null?`<label class="f">Ma note</label>${starsHTML(it.myRating)}`:""}
 
@@ -791,7 +802,7 @@ async function onSignedIn(u){
   try{await loadAll();hideSplash()}catch(e){hideSplash();$("#banner").textContent="Impossible de charger ta liste : "+(e.message||"erreur");$("#banner").classList.remove("hidden");loaded=true;render()}
   if(!prefs.tmdb) gateToken();
   else { // refresh stale ongoing series quietly
-    const stale=items.filter(i=>i.tmdbId&&(i.keywords===undefined||(i.type==="serie"&&(i.epRuntime===undefined||((i.ongoing!==false||statusOf(i)!=="vu")&&(!i.providersDate||Date.now()-i.providersDate>2*864e5))))))
+    const stale=items.filter(i=>i.tmdbId&&(i.keywords===undefined||(i.type==="serie"&&i.ongoing!==false&&i.epV!==2)||(i.type==="serie"&&(i.epRuntime===undefined||((i.ongoing!==false||statusOf(i)!=="vu")&&(!i.providersDate||Date.now()-i.providersDate>2*864e5))))))
       .sort((a,b)=>(a.keywords===undefined?0:1)-(b.keywords===undefined?0:1)||(a.providersDate||0)-(b.providersDate||0)).slice(0,25);
     for(const it of stale) await refreshItem(it.id,false);
   }
