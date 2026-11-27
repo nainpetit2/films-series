@@ -462,6 +462,11 @@ function setBackdrop(it){
 function openSheet(){$("#scrim").classList.add("on");$("#sheet").classList.add("on");$("#sheet").scrollTop=0}
 function closeSheet(){if(openId)flush(openId);openId=null;mode=null;confirmDel=false;$("#scrim").classList.remove("on");$("#sheet").classList.remove("on");setTimeout(()=>{if(!mode){setBackdrop(null);$("#sheetBody").dataset.bd=""}},300)}
 $("#scrim").onclick=closeSheet; $("#close").onclick=closeSheet;
+(()=>{const sh=$("#sheet");let y0=null,dy=0,drag=false;
+  sh.addEventListener("touchstart",e=>{if(sh.scrollTop>2||e.touches.length>1){y0=null;return}y0=e.touches[0].clientY;dy=0;drag=false},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>8&&sh.scrollTop<=0){drag=true;sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`;if(e.cancelable)e.preventDefault()}},{passive:false});
+  sh.addEventListener("touchend",()=>{if(y0==null)return;sh.style.transition="";sh.style.transform="";if(drag&&dy>110)closeSheet();y0=null;drag=false});
+})();
 
 /* ---- add (search) ---- */
 let searchCtl=null, searchT=null;
@@ -558,6 +563,8 @@ function renderDetail(){
   ${it.tmdbId?"":`<label class="f">Titre</label><input class="in" data-k="title" value="${esc(it.title)}">`}
   <div style="height:14px"></div>
   ${it.tmdbId?`<button class="btn ghost" id="refresh" ${busy?"disabled":""}>${busy?"Mise à jour…":"Actualiser la fiche (notes, saisons)"}</button>`:""}
+  <div style="height:8px"></div><button class="btn sec" id="swapType">${isS?"Mal classé ? C'est un film":"Mal classé ? C'est une série"}</button>
+  <div id="swapBox"></div>
   ${confirmDel?`<div class="confirm">Supprimer « ${esc(it.title)} » ? <div class="row" style="margin-top:10px"><button class="btn sec" id="noDel">Annuler</button><button class="btn red" id="yesDel">Supprimer</button></div></div>`:`<button class="danger" id="del">Supprimer</button>`}`;
   setHTML(body,html);
   bindDetail(it);
@@ -590,6 +597,7 @@ function bindDetail(it){
   const as=$("#addSeason"); if(as) as.onclick=()=>setSeasons(id,ss=>{const n=ss.length?Math.max(...ss.map(s=>s.n))+1:1;ss.push({n,eps:ss.length?ss[ss.length-1].eps||10:10,w:[]});openSeasons[id+"_"+(ss.length-1)]=true});
   body.querySelectorAll("[data-sst]").forEach(b=>b.onclick=()=>{const v=b.dataset.sst||null;if((it.sState||null)!==v)patch(id,{sState:v,updatedAt:Date.now()},0)});
   body.querySelectorAll("[data-plat]").forEach(b=>b.onclick=()=>{const v=b.dataset.plat;patch(id,{platform:platformOf(it)===v?"":v,updatedAt:Date.now()},0)});
+  const sw=$("#swapType"); if(sw) sw.onclick=()=>swapSearch(id);
   const rf=$("#refresh"); if(rf) rf.onclick=()=>refreshItem(id,true);
   const d=$("#del"); if(d) d.onclick=()=>{confirmDel=true;renderDetail()};
   const nd=$("#noDel"); if(nd) nd.onclick=()=>{confirmDel=false;renderDetail()};
@@ -624,6 +632,34 @@ function applyTheme(){
   const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=T.v.bg;
 }
 try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{if(themeId()==="auto")applyTheme()})}catch(e){}
+/* ---- corriger film <-> série ---- */
+async function swapSearch(id){
+  const it=getItem(id); if(!it) return;
+  const toTv=it.type==="film", mt=toTv?"tv":"movie", box=$("#swapBox");
+  box.innerHTML=`<div class="mini" style="margin-top:10px">Je cherche « ${esc(it.title)} » parmi les ${toTv?"séries":"films"}…</div>`;
+  let res=[];
+  try{
+    const q=(it.originalTitle&&it.originalTitle!==it.title)?[it.title,it.originalTitle]:[it.title];
+    for(const t of q){const d=await tm(`/search/${mt}`,{query:t});(d.results||[]).forEach(r=>{if(!res.find(x=>x.id===r.id))res.push(r)})}
+  }catch(e){box.innerHTML=`<div class="ai">${esc(tmErr(e))}</div>`;return}
+  res=res.slice(0,6);
+  box.innerHTML=`<label class="f">Choisis ${toTv?"la bonne série":"le bon film"}</label><div class="res">${res.map(r=>{const t=toTv?r.name:r.title,y=String(toTv?r.first_air_date:r.release_date||"").slice(0,4);
+    return `<button class="ri" data-sw="${r.id}">${r.poster_path?`<img src="${IMG}w92${esc(r.poster_path)}" alt="">`:`<div class="noimg"></div>`}<div style="min-width:0"><div class="t">${esc(t)}</div><div class="y">${y}</div></div><span class="tag ${toTv?"tv":""}">${toTv?"Série":"Film"}</span></button>`}).join("")||`<div class="mini">Aucun résultat.</div>`}</div>`;
+  box.querySelectorAll("[data-sw]").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;b.style.opacity=.6;
+    try{
+      const d=await fetchDetails(mt,+b.dataset.sw); const om=await fetchOmdb(d.imdbId);
+      const keep={id:it.id,myRating:it.myRating,notes:it.notes,createdAt:it.createdAt,platform:it.platform};
+      Object.keys(it).forEach(k=>delete it[k]);
+      Object.assign(it,d,om,keep,{updatedAt:Date.now(),status:"avoir"});
+      if(d.tmdbSeasons){it.seasons=d.tmdbSeasons.map(x=>({...x,w:[]}))} delete it.tmdbSeasons;
+      if(!it.platform) it.platform=PICK.includes(d.autoPlatform)?d.autoPlatform:"";
+      dirty.add(it.id); flush(it.id);
+      tab=it.type; filter=it.type==="serie"?"avoir":"avoir"; syncTabs();
+      $("#sheetBody")._h=null; $("#sheetBody").dataset.bd=""; render(); toast(`Reclassé en ${it.type==="serie"?"série":"film"} ✓`);
+    }catch(e){b.disabled=false;b.style.opacity=1;toast(e?.code?tmErr(e):"Correction impossible")}
+  });
+}
 /* ---- settings ---- */
 function openSettings(){
   $("#sheetBody")._h=null; mode="settings"; openId=null; setBackdrop(null);

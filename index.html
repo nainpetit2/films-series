@@ -486,6 +486,17 @@ html[data-skin=minimal] .card .poster{box-shadow:none;outline:1px solid #E5E5E5}
 .splash .ss{animation-name:fsRiseS}
 @keyframes fsRiseS{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:.75}}
 @media (prefers-reduced-motion: reduce){.splash *{animation:none!important}.splash{transition:none}}
+
+/* fiche : fermeture facile, pas de débordement */
+.sheet{max-height:calc(100dvh - env(safe-area-inset-top) - 56px);overflow-x:hidden;overscroll-behavior:contain}
+.sh{overflow-x:hidden}
+.sh>*{max-width:100%}
+.closebar .close{width:40px;height:40px;top:10px;right:12px;background:rgba(10,10,14,.72);color:#fff;border:1px solid rgba(255,255,255,.25);box-shadow:0 4px 14px rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.closebar .close svg{width:16px;height:16px}
+.grab{width:56px;height:6px;margin:10px auto 6px;background:rgba(255,255,255,.55)}
+html[data-theme=light] .grab{background:rgba(0,0,0,.25)}
+.reco,.rtop,.rcalc,.rn,.rnl{min-width:0;max-width:100%}
+.rcalc span{min-width:0}
 </style>
 </head>
 <body>
@@ -525,7 +536,7 @@ html[data-skin=minimal] .card .poster{box-shadow:none;outline:1px solid #E5E5E5}
 <div class="gate hidden" id="gate"><div class="box" id="gateBox"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=22"></script>
-<script src="app.js?v=22"></script>
+<script src="config.js?v=23"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
