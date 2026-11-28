@@ -405,15 +405,15 @@ const TYPES = [
   {k:"Plante",c:"#4fae55",i:"plante"},{k:"Feu",c:"#ef6236",i:"feu"},{k:"Eau",c:"#3a8fe0",i:"eau"},
   {k:"Électrique",c:"#f2b90f",i:"elec"},{k:"Psy",c:"#a95ad1",i:"psy"},{k:"Combat",c:"#c06a35",i:"combat"},
   {k:"Obscurité",c:"#454a63",i:"obscur"},{k:"Métal",c:"#8693a4",i:"metal"},{k:"Fée",c:"#e57fb9",i:"fee"},
-  {k:"Dragon",c:"#6a5cd6",i:"dragon"},{k:"Incolore",c:"#a9a395",i:"incolore"},
+  {k:"Dragon",c:"#6a5cd6",i:"dragon"},{k:"Normal",c:"#a9a395",i:"incolore"},
   {k:"Dresseur",c:"#6b7a90",i:"dresseur"},{k:"Énergie",c:"#2f9e98",i:"energie"}
 ];
 const typeInfo = k => TYPES.find(t => t.k === k) || {k:k||"Autre",c:"#9aa3b5",i:"incolore"};
 const tIco = (k, cls) => { const t = typeInfo(k); return `<span class="ti ${cls||""}" style="background:${t.c}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICO[t.i]}</svg></span>`; };
 const SANS = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 function normType(t){
-  const m = {plante:"Plante",grass:"Plante",feu:"Feu",fire:"Feu",eau:"Eau",water:"Eau",electrique:"Électrique",lightning:"Électrique",psy:"Psy",psychic:"Psy",combat:"Combat",fighting:"Combat",obscurite:"Obscurité",darkness:"Obscurité",metal:"Métal",fee:"Fée",fairy:"Fée",dragon:"Dragon",incolore:"Incolore",colorless:"Incolore",dresseur:"Dresseur",energie:"Énergie"};
-  return m[SANS(t)] || "Incolore";
+  const m = {plante:"Plante",grass:"Plante",feu:"Feu",fire:"Feu",eau:"Eau",water:"Eau",electrique:"Électrique",lightning:"Électrique",psy:"Psy",psychic:"Psy",combat:"Combat",fighting:"Combat",obscurite:"Obscurité",darkness:"Obscurité",metal:"Métal",fee:"Fée",fairy:"Fée",dragon:"Dragon",incolore:"Normal",colorless:"Normal",normal:"Normal",dresseur:"Dresseur",energie:"Énergie"};
+  return m[SANS(t)] || "Normal";
 }
 function typeCarte(c){
   const cat = SANS(c.category);
@@ -964,7 +964,7 @@ async function ajouter(){
   const b = A.choix; if (!b || A.charge) return;
   A.charge = true; rendreAjout();
   let f = b.fiche;
-  if (!f){ try { f = await ficheComplete(b.id); } catch(e){ f = {cardId:b.id, nom:b.name, image:b.image||null, numero:String(b.localId||""), serie:"", serieId:"", total:null, rarete:"", rang:0, type: A.lu && A.lu.type ? normType(A.lu.type) : "Incolore", pv: A.lu && A.lu.pv || null, cote:null, coteLe:null}; } }
+  if (!f){ try { f = await ficheComplete(b.id); } catch(e){ f = {cardId:b.id, nom:b.name, image:b.image||null, numero:String(b.localId||""), serie:"", serieId:"", total:null, rarete:"", rang:0, type: A.lu && A.lu.type ? normType(A.lu.type) : "Normal", pv: A.lu && A.lu.pv || null, cote:null, coteLe:null}; } }
   if (!f.image && A.photo){ try { f.photo = await vignette(A.photo); } catch(e){} }
   const existe = S.cartes.find(c => c.cardId === b.id);
   const recue = A.recue ? {avec: A.recue.avec, contre: A.recue.contre, date: A.recue.date} : null;
@@ -1081,7 +1081,8 @@ function gateMessage(titre, texte){ showGate(`<h2>${titre}</h2><p>${texte}</p><b
 async function deconnecter(){ try { await sb.auth.signOut(); } catch(e){} LS.set("pk_cache", null); location.reload(); }
 
 function appliquer(rows){
-  S.cartes = rows.map(r => { const c = Object.assign({qte:1, vf:"vigilance", rang:0, type:"Incolore", nom:"", serie:"", rarete:"", echanges:[]}, r.data, {id: r.id});
+  S.cartes = rows.map(r => { const c = Object.assign({qte:1, vf:"vigilance", rang:0, type:"Normal", nom:"", serie:"", rarete:"", echanges:[]}, r.data, {id: r.id});
+    if (c.type === "Incolore") c.type = "Normal";
     c.vf = normVF(c.vf); c.qte = Math.max(0, parseInt(c.qte, 10) || 0); return c; });
   render(); if (S.detail && S.detail !== "__voix" && !S.ech) rendreDetail();
 }
