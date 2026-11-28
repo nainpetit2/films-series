@@ -118,7 +118,7 @@ button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:tran
 .etat strong{color:var(--ink);font-size:1.1rem}
 .grosic{display:block;width:110px;height:110px}
 .grosic svg{width:100%;height:100%}
-.compte{text-align:center;color:var(--muted);font-size:13px;padding:8px 0;display:flex;flex-direction:column;gap:6px;align-items:center}
+.compte{text-align:center;color:var(--muted);font-size:13px;padding:8px 0 70px;display:flex;flex-direction:column;gap:6px;align-items:center}
 .compte button{background:none;border:0;color:var(--accent);font-weight:700;font-size:13px;padding:4px}
 
 .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:12;border:5px solid #fff;border-radius:50%;background:var(--red);color:#fff;width:84px;height:84px;display:grid;place-items:center;box-shadow:0 12px 28px -8px rgba(229,72,59,.8)}
@@ -275,6 +275,11 @@ details.astuces ul{margin:8px 0 2px;padding-left:20px;display:flex;flex-directio
 .v-bas .rond-btn svg{width:26px;height:26px}
 .v-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .v-flash.on{opacity:.85;transition:none}
+.voix{display:flex;flex-direction:column;gap:8px}
+.voix button{display:flex;align-items:center;gap:12px;border:2px solid var(--line);background:#fff;border-radius:16px;padding:12px 14px;text-align:left}
+.voix button svg{width:26px;height:26px;color:var(--accent);flex:none}
+.voix button small{display:block;color:var(--muted);font-size:12.5px}
+.voix button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top));background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);z-index:50;display:none;font-weight:600}
 .toast.on{display:block}
 
@@ -454,18 +459,38 @@ const imgUrl = (base, q) => base ? `${base}/${q||"low"}.webp` : "";
 window.imgSecours = function(el){
   const s = el.getAttribute("src") || "";
   if (s.includes("/fr/") && !el.dataset.en){ el.dataset.en = 1; el.src = s.replace("/fr/","/en/"); return; }
+  if (el.dataset.photo && !el.dataset.ph){ el.dataset.ph = 1; el.src = el.dataset.photo; return; }
   el.onerror = null; el.src = "logo.svg"; el.style.objectFit = "contain"; el.style.padding = "18%";
 };
-const imgTag = (base, q, alt) => `<img src="${esc(imgUrl(base,q) || "logo.svg")}" alt="${esc(alt||"")}" loading="lazy" decoding="async" onerror="imgSecours(this)">`;
+const imgTag = (base, q, alt, photo) => `<img src="${esc(imgUrl(base,q) || photo || "logo.svg")}" ${photo ? `data-photo="${esc(photo)}"` : ""} alt="${esc(alt||"")}" loading="lazy" decoding="async" onerror="imgSecours(this)">`;
+const imgCarte = (c, q) => imgTag(c.image, q, c.nom, c.photo);
 function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 3200); }
 /* La voix : l'appli parle pour un enfant qui ne lit pas encore */
-function dire(txt){
+/* On prend la plus belle voix française installée (Premium, puis Améliorée), ou celle choisie par les parents */
+function voixFr(){ try { return speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); } catch(e){ return []; } }
+const noteVoix = v => (/premium/i.test(v.name) || /premium/i.test(v.voiceURI) ? 4 : /enhanced|am[ée]lior/i.test(v.name + v.voiceURI) ? 3 : /siri/i.test(v.name + v.voiceURI) ? 2 : 0) + (/fr-FR/i.test(v.lang) ? 1 : 0) - (/eloquence|grandpa|grandma|rocko|shelley|sandy|reed|flo|eddy/i.test(v.name + v.voiceURI) ? 5 : 0);
+function voixChoisie(){
+  const vs = voixFr(), nom = LS.get("pk_voix");
+  return vs.find(v => v.voiceURI === nom) || vs.slice().sort((a,b) => noteVoix(b) - noteVoix(a))[0] || null;
+}
+function dire(txt, voix){
   try {
     const s = window.speechSynthesis; if (!s || !txt) return; s.cancel();
-    const u = new SpeechSynthesisUtterance(txt); u.lang = "fr-FR"; u.rate = .95; u.pitch = 1.1;
-    const v = s.getVoices().find(v => /^fr/i.test(v.lang)); if (v) u.voice = v;
+    const u = new SpeechSynthesisUtterance(txt); u.lang = "fr-FR"; u.rate = 1; u.pitch = 1;
+    const v = voix || voixChoisie(); if (v){ u.voice = v; u.lang = v.lang; }
     s.speak(u);
   } catch(e){}
+}
+function ouvrirVoix(){
+  const vs = voixFr().sort((a,b) => noteVoix(b) - noteVoix(a)), cur = voixChoisie();
+  $("fDetail").innerHTML = `<div class="tete"><span style="width:46px"></span><h2>La voix</h2><button class="rond-btn" type="button" data-close aria-label="Fermer">${P.close}</button></div>
+    <p style="margin:0;color:var(--muted);font-size:14px">Touche une voix pour l'écouter et la choisir.</p>
+    <div class="voix">${vs.length ? vs.map(v => `<button type="button" data-voix="${esc(v.voiceURI)}" aria-pressed="${cur && cur.voiceURI === v.voiceURI}">${P.speak}<span><b>${esc(v.name.replace(/\s*\(.*\)/, ""))}</b><small>${esc(v.lang)}${noteVoix(v) >= 3 ? " · haute qualité" : ""}</small></span></button>`).join("") : `<div class="etat">Aucune voix française trouvée.</div>`}</div>
+    <details class="astuces" open><summary>${P.bulb}Avoir une voix plus naturelle (iPhone)</summary><ul>
+      <li>Ouvre <b>Réglages</b> → <b>Accessibilité</b> → <b>Contenu énoncé</b> → <b>Voix</b> → <b>Français</b>.</li>
+      <li>Choisis une voix (par ex. Audrey ou Thomas) et télécharge la version <b>Améliorée</b> ou <b>Premium</b> si elle est proposée.</li>
+      <li>Reviens ici : elle apparaîtra en haut de la liste.</li></ul></details>`;
+  S.detail = "__voix"; $("vDetail").classList.add("on");
 }
 const sorte = c => c.type === "Dresseur" || c.type === "Énergie" ? "Carte " + c.type : "Type " + c.type;
 const phrase = c => `${c.nom}. ${sorte(c)}. ${NB_ET[c.rang||0]} étoile${NB_ET[c.rang||0]>1?"s":""}.` +
@@ -502,7 +527,9 @@ async function ficheComplete(id){
   let c;
   try { c = await api("/cards/" + encodeURIComponent(id)); } catch(e){ c = await api("/cards/" + encodeURIComponent(id), "en"); }
   let pricing = c.pricing;
-  if (!pricing || !pricing.cardmarket){ try { pricing = (await api("/cards/" + encodeURIComponent(id), "en")).pricing || pricing; } catch(e){} }
+  if (!c.image || !pricing || !pricing.cardmarket){
+    try { const en = await api("/cards/" + encodeURIComponent(id), "en"); if (!pricing || !pricing.cardmarket) pricing = en.pricing || pricing; if (!c.image && en.image) c.image = en.image; } catch(e){}
+  }
   return fiche(c, pricing);
 }
 
@@ -567,7 +594,7 @@ function tuile(c){
   const prix = !compte(c.vf) ? `<span class="prix zero">${c.cote ? eur(c.cote.moy) : "0 €"}</span>` : c.cote ? `<span class="prix">${eur(c.cote.moy)}</span>` : `<span class="prix nc">—</span>`;
   const e = dernierEch(c), nbE = (c.echanges||[]).length;
   return `<button class="tuile ${compte(c.vf) ? "" : "faux"} ${c.qte > 0 ? "" : "partie"}" data-id="${esc(c.id)}" type="button" aria-label="${esc(c.nom)}">
-    <span class="img">${imgTag(c.image,"low",c.nom)}<span class="badge" style="--c:${VF[c.vf].c}">${VF[c.vf].s}</span>${c.qte > 1 ? `<span class="qte">×${c.qte}</span>` : c.qte === 0 ? `<span class="qte">0</span>` : ""}${nbE ? `<span class="ech">${P.swap}${nbE > 1 ? nbE : ""}</span>` : ""}${tIco(c.type,"tbadge")}</span>
+    <span class="img">${imgCarte(c,"low")}<span class="badge" style="--c:${VF[c.vf].c}">${VF[c.vf].s}</span>${c.qte > 1 ? `<span class="qte">×${c.qte}</span>` : c.qte === 0 ? `<span class="qte">0</span>` : ""}${nbE ? `<span class="ech">${P.swap}${nbE > 1 ? nbE : ""}</span>` : ""}${tIco(c.type,"tbadge")}</span>
     ${S.vue === "echanges" && e.avec ? `<span class="avec">avec ${esc(e.avec)}</span>` : ""}
     <span class="bas">${etoiles(c.rang)}${prix}</span></button>`;
 }
@@ -583,7 +610,7 @@ function render(){
     <div class="stat tresor"><span class="pic">${P.chest}</span><span class="v">${Math.round(tresor)} €</span><span class="l">trésor</span></div>
     <button class="stat" type="button" data-vue="doubles" aria-pressed="${S.vue==="doubles"}"><span class="pic">${P.doubles}</span><span class="v">${nbDoubles}</span><span class="l">doubles</span></button>
     <button class="stat" type="button" data-vue="echanges" aria-pressed="${S.vue==="echanges"}"><span class="pic">${P.echanges}</span><span class="v">${nbEch}</span><span class="l">échanges</span></button>
-    ${top ? `<button class="stat top" type="button" data-id="${esc(top.id)}"><span class="crown">${P.crown}</span>${imgTag(top.image,"low","")}<span class="t">${esc(top.nom)}</span><span class="p">${P.coinbig}${eur(top.cote.moy)}</span></button>` : ""}`;
+    ${top ? `<button class="stat top" type="button" data-id="${esc(top.id)}"><span class="crown">${P.crown}</span>${imgCarte(top,"low")}<span class="t">${esc(top.nom)}</span><span class="p">${P.coinbig}${eur(top.cote.moy)}</span></button>` : ""}`;
 
   const presents = TYPES.filter(t => toutes.some(c => c.type === t.k));
   $("types").hidden = presents.length < 2;
@@ -656,7 +683,7 @@ function rendreDetail(){
   const lien = `https://www.cardmarket.com/fr/Pokemon/Products/Search?searchString=${encodeURIComponent(c.nom)}`;
   $("fDetail").innerHTML = `
     <div class="tete"><button class="rond-btn voix" type="button" id="dDire" aria-label="Écouter">${P.speak}</button><h2>${esc(c.nom)}</h2><button class="rond-btn" type="button" data-close aria-label="Fermer">${P.close}</button></div>
-    <div class="detail-img ${faux ? "faux" : ""}">${imgTag(c.image,"high",c.nom)}</div>
+    <div class="detail-img ${faux ? "faux" : ""}">${imgCarte(c,"high")}</div>
     ${c.qte > 1 ? `<div class="deja-la">${P.doubles}<span>J'en ai ${c.qte}<small>${c.qte - 1} double${c.qte > 2 ? "s" : ""} à échanger</small></span></div>` : c.qte === 0 ? `<div class="deja-la">${P.echanges}<span>Je ne l'ai plus<small>Elle a été échangée</small></span></div>` : ""}
     <div class="tuiles-info">
       <div class="ti-info">${tIco(c.type)}<small>${esc(c.type)}</small></div>
@@ -682,6 +709,14 @@ async function modifier(c, patch){
   if (error){ toast("Pas pu enregistrer : " + (error.message || "erreur")); charger(); }
 }
 $("fDetail").addEventListener("click", async e => {
+  if (S.detail === "__voix"){
+    if (e.target.closest("[data-close]")) return fermer("vDetail");
+    const b = e.target.closest("[data-voix]"); if (!b) return;
+    LS.set("pk_voix", b.dataset.voix);
+    document.querySelectorAll("[data-voix]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    dire("Bonjour ! C'est moi qui vais te parler de tes cartes Pokémon.", voixFr().find(v => v.voiceURI === b.dataset.voix));
+    return;
+  }
   const c = S.cartes.find(x => x.id === S.detail); if (!c) return;
   if (e.target.closest("[data-close]")) return fermer("vDetail");
   if (S.ech && e.target.closest("#eAvec, #eContre")) return;
@@ -930,10 +965,13 @@ async function ajouter(){
   A.charge = true; rendreAjout();
   let f = b.fiche;
   if (!f){ try { f = await ficheComplete(b.id); } catch(e){ f = {cardId:b.id, nom:b.name, image:b.image||null, numero:String(b.localId||""), serie:"", serieId:"", total:null, rarete:"", rang:0, type: A.lu && A.lu.type ? normType(A.lu.type) : "Incolore", pv: A.lu && A.lu.pv || null, cote:null, coteLe:null}; } }
+  if (!f.image && A.photo){ try { f.photo = await vignette(A.photo); } catch(e){} }
   const existe = S.cartes.find(c => c.cardId === b.id);
   const recue = A.recue ? {avec: A.recue.avec, contre: A.recue.contre, date: A.recue.date} : null;
   if (existe){
     const patch = {qte: existe.qte + A.qte, cote: f.cote || existe.cote};
+    if (!existe.image && f.image) patch.image = f.image;
+    if (!existe.image && !existe.photo && f.photo) patch.photo = f.photo;
     if (ORDRE_VF.indexOf(A.vf) > ORDRE_VF.indexOf(existe.vf)) patch.vf = A.vf; /* on garde la note la plus prudente */
     if (recue) patch.recue = recue;
     await modifier(existe, patch);
@@ -947,9 +985,16 @@ async function ajouter(){
   A.charge = false; A.recue = null; fermer("vAjout"); render(); feter(f, double);
 }
 
+function vignette(dataUrl){
+  return new Promise((ok, ko) => { const im = new Image(); im.onload = () => {
+    const k = Math.min(1, 360 / im.naturalWidth), cv = document.createElement("canvas");
+    cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k);
+    cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); ok(cv.toDataURL("image/jpeg", .72)); };
+    im.onerror = ko; im.src = dataUrl; });
+}
 /* ---------- Fête ---------- */
 function feter(f, encore){
-  $("feteImg").src = imgUrl(f.image, "high") || "logo.svg"; $("feteImg").onerror = function(){ imgSecours(this); };
+  $("feteImg").src = imgUrl(f.image, "high") || f.photo || "logo.svg"; $("feteImg").onerror = function(){ imgSecours(this); };
   $("feteEt").innerHTML = etoiles(f.rang);
   $("feteTitre").textContent = encore ? "Un double !" : "Nouvelle carte !";
   $("fete").classList.add("on");
@@ -983,13 +1028,14 @@ document.querySelector(".wrap").addEventListener("click", e => {
 });
 
 /* ---------- Cotes : mises à jour tous les 3 jours ---------- */
+const dejaEssaye = new Set();
 async function majCotes(toutes){
-  const vieux = S.cartes.filter(c => toutes || !c.coteLe || Date.now() - new Date(c.coteLe).getTime() > 3*864e5);
+  const vieux = S.cartes.filter(c => toutes || !c.coteLe || (!c.image && !dejaEssaye.has(c.id) && dejaEssaye.add(c.id)) || Date.now() - new Date(c.coteLe).getTime() > 3*864e5);
   if (!vieux.length){ if (toutes) toast("Les cotes sont déjà à jour"); return; }
   if (toutes) toast(`Mise à jour de ${vieux.length} cote${vieux.length>1?"s":""}…`);
   let i = 0, ok = 0;
   const w = async () => { while (i < vieux.length){ const c = vieux[i++];
-    try { const f = await ficheComplete(c.cardId); await modifier(c, {cote: f.cote || c.cote, coteLe: f.coteLe, rarete: c.rarete || f.rarete, rang: c.rarete ? c.rang : f.rang}); ok++; } catch(e){} } };
+    try { const f = await ficheComplete(c.cardId); await modifier(c, Object.assign({cote: f.cote || c.cote, coteLe: f.coteLe, rarete: c.rarete || f.rarete, rang: c.rarete ? c.rang : f.rang}, !c.image && f.image ? {image: f.image} : {})); ok++; } catch(e){} } };
   await Promise.all([w(), w(), w()]);
   if (toutes) toast(ok ? "Cotes mises à jour" : "Impossible de joindre le site des cartes");
 }
@@ -1037,7 +1083,7 @@ async function deconnecter(){ try { await sb.auth.signOut(); } catch(e){} LS.set
 function appliquer(rows){
   S.cartes = rows.map(r => { const c = Object.assign({qte:1, vf:"vigilance", rang:0, type:"Incolore", nom:"", serie:"", rarete:"", echanges:[]}, r.data, {id: r.id});
     c.vf = normVF(c.vf); c.qte = Math.max(0, parseInt(c.qte, 10) || 0); return c; });
-  render(); if (S.detail && !S.ech) rendreDetail();
+  render(); if (S.detail && S.detail !== "__voix" && !S.ech) rendreDetail();
 }
 async function charger(){
   const {data, error} = await sb.from(TABLE).select("id,data");
@@ -1050,8 +1096,8 @@ async function demarrer(){
   if (error){ gateMessage("Base pas prête", `Il manque la table des cartes dans Supabase (script <code>pokemon/supabase.sql</code>).<br><small>${esc(error.message || "")}</small>`); return; }
   if (!ok){ gateMessage("Accès aux cartes", `Ce compte (${esc(user && user.email)}) n'a pas encore accès. Ajoute son e-mail dans la table <code>pokemon_members</code> de Supabase.`); return; }
   $("gate").classList.remove("on");
-  $("compte").innerHTML = `<button type="button" id="majTout">Mettre à jour toutes les cotes</button><span>Cotes : moyenne des ventes Cardmarket · cartes TCGdex · photos lues par Claude</span><span>Connecté : ${esc(user.email)} · <button id="logout" type="button">Se déconnecter</button></span>`;
-  $("logout").onclick = deconnecter; $("majTout").onclick = () => majCotes(true);
+  $("compte").innerHTML = `<button type="button" id="choixVoix">Choisir la voix</button><button type="button" id="majTout">Mettre à jour toutes les cotes</button><span>Cotes : moyenne des ventes Cardmarket · cartes TCGdex · photos lues par Claude</span><span>Connecté : ${esc(user.email)} · <button id="logout" type="button">Se déconnecter</button></span>`;
+  $("logout").onclick = deconnecter; $("majTout").onclick = () => majCotes(true); $("choixVoix").onclick = ouvrirVoix;
   await charger(); window.cacherSplash();
   try { sb.channel("pokemon").on("postgres_changes", {event:"*", schema:"public", table:TABLE}, () => { clearTimeout(demarrer._t); demarrer._t = setTimeout(charger, 400); }).subscribe(); } catch(e){}
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") charger(); });
