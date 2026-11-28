@@ -253,6 +253,28 @@ details.astuces ul{margin:8px 0 2px;padding-left:20px;display:flex;flex-directio
 .fete .btn svg{width:46px;height:46px}
 @media(prefers-reduced-motion:no-preference){.fete.on .c{animation:pop .7s cubic-bezier(.2,1.5,.4,1) both}.fete.on h3{animation:rise .5s .25s ease both}.tuile .img{transition:transform .12s}.tuile:active .img{transform:scale(.97)}}
 
+.viseur{position:fixed;inset:0;z-index:35;background:#000;display:none}
+.viseur.on{display:block}
+.viseur video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cadre{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(74vw,calc(58vh * 63 / 88));aspect-ratio:63/88;border-radius:16px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55);border:3px solid rgba(255,255,255,.9)}
+.cadre i{position:absolute;width:34px;height:34px;border:6px solid var(--sun)}
+.cadre i:nth-child(1){top:-6px;left:-6px;border-right:0;border-bottom:0;border-radius:16px 0 0 0}
+.cadre i:nth-child(2){top:-6px;right:-6px;border-left:0;border-bottom:0;border-radius:0 16px 0 0}
+.cadre i:nth-child(3){bottom:-6px;left:-6px;border-right:0;border-top:0;border-radius:0 0 0 16px}
+.cadre i:nth-child(4){bottom:-6px;right:-6px;border-left:0;border-top:0;border-radius:0 0 16px 0}
+@media(prefers-reduced-motion:no-preference){.cadre i{animation:clign 1.6s ease-in-out infinite}}
+@keyframes clign{50%{opacity:.45}}
+.v-aide{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top));text-align:center;color:#fff;font-weight:800;font-size:1.05rem;display:flex;justify-content:center;align-items:center;gap:10px;padding:0 70px}
+.v-aide .ico{display:flex;gap:6px}
+.v-aide .ico svg{width:34px;height:34px;background:rgba(255,255,255,.92);border-radius:10px;padding:3px}
+.v-x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;background:rgba(255,255,255,.2);color:#fff}
+.v-bas{position:absolute;left:0;right:0;bottom:calc(22px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px}
+.v-declic{width:86px;height:86px;border-radius:50%;border:6px solid #fff;background:var(--red);box-shadow:0 0 0 4px rgba(0,0,0,.25)}
+.v-declic:active{transform:scale(.93)}
+.v-bas .rond-btn{background:rgba(255,255,255,.2);color:#fff;width:52px;height:52px}
+.v-bas .rond-btn svg{width:26px;height:26px}
+.v-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.v-flash.on{opacity:.85;transition:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top));background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);z-index:50;display:none;font-weight:600}
 .toast.on{display:block}
 
@@ -304,6 +326,14 @@ details.astuces ul{margin:8px 0 2px;padding-left:20px;display:flex;flex-directio
 <div class="voile" id="vAjout"><div class="feuille haute" id="fAjout"></div></div>
 <div class="voile" id="vDetail"><div class="feuille" id="fDetail"></div></div>
 <div class="fete" id="fete" role="dialog" aria-live="polite"><canvas id="confetti"></canvas><div class="c"><img id="feteImg" alt=""></div><div class="etoiles" id="feteEt"></div><h3 id="feteTitre">Nouvelle carte !</h3><button class="btn prim" id="feteOk" aria-label="Super"></button></div>
+<div class="viseur" id="viseur" role="dialog" aria-label="Photographier la carte">
+  <video id="vid" playsinline muted autoplay></video>
+  <div class="cadre" id="cadre"><i></i><i></i><i></i><i></i></div>
+  <div class="v-aide" id="vAide"></div>
+  <button class="rond-btn v-x" type="button" id="vFermer" aria-label="Fermer"></button>
+  <div class="v-bas"><button class="rond-btn" type="button" id="vAlbum" aria-label="Choisir une photo" style="justify-self:start"></button><button class="v-declic" type="button" id="vDeclic" aria-label="Prendre la photo"></button><button class="rond-btn" type="button" id="vNom" aria-label="Chercher par le nom" style="justify-self:end"></button></div>
+  <div class="v-flash" id="vFlash"></div>
+</div>
 <div class="gate" id="gate"><div class="box" id="gateBox"></div></div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -687,7 +717,11 @@ $("fDetail").addEventListener("click", async e => {
 /* ---------- Ajout par photo ---------- */
 const A = {etape:"photo", photo:null, lu:null, cands:[], choix:null, qte:1, vf:"vraie", q:"", numero:"", res:[], charge:false, err:"", retour:"", recue:null};
 const BOUTON_X = () => `<button class="rond-btn" type="button" data-close aria-label="Fermer">${P.close}</button>`;
-function ouvrirAjout(recue){ Object.assign(A, {etape:"photo", photo:null, lu:null, cands:[], choix:null, qte:1, vf:"vraie", err:"", recue: recue && recue.avec !== undefined ? recue : null}); rendreAjout(); $("vAjout").classList.add("on"); }
+function ouvrirAjout(recue){
+  Object.assign(A, {etape:"photo", photo:null, lu:null, cands:[], choix:null, qte:1, vf:"vraie", err:"", recue: recue && recue.avec !== undefined ? recue : null});
+  if (A.recue){ montrerFeuillePhoto(); return; }
+  ouvrirViseur();
+}
 function rendreAjout(){
   const f = $("fAjout"), E = A.etape;
   if (E === "photo"){
@@ -761,15 +795,16 @@ function reduire(file){
     im.src = url;
   });
 }
-const ERREURS = {cle_manquante:"La clé de l'IA n'est pas encore installée (parents : voir Supabase).", cle_invalide:"La clé de l'IA n'est pas bonne (parents).", credit:"Plus de crédit sur le compte de l'IA (parents).", acces:"Ce compte n'a pas accès à la reconnaissance."};
+const ERREURS = {cle_manquante:"La clé de l'IA n'est pas encore installée (parents : voir Supabase).", cle_invalide:"La clé de l'IA n'est pas bonne (parents).", credit:"Plus de crédit sur le compte de l'IA (parents).", acces:"Ce compte n'a pas accès à la reconnaissance.", lecture:"L'IA n'a pas réussi à lire la carte. Reprends la photo.", reseau:"Le service n'arrive pas à joindre l'IA. Réessaie."};
 async function analyser(file){
   A.etape = "analyse"; A.err = ""; A.lu = null;
-  try { A.photo = await reduire(file); } catch(e){ A.etape = "oups"; A.err = "Je n'arrive pas à ouvrir cette photo."; rendreAjout(); return; }
+  try { A.photo = typeof file === "string" ? file : await reduire(file); } catch(e){ A.etape = "oups"; A.err = "Je n'arrive pas à ouvrir cette photo."; rendreAjout(); return; }
   rendreAjout(); dire("Je regarde ta carte");
   let lu;
   try {
     const {data, error} = await sb.functions.invoke("pokemon-scan", {body: {image: A.photo.split(",")[1], media_type: "image/jpeg"}});
-    if (error){ let code = ""; try { code = (await error.context.json()).error; } catch(e){} throw new Error(ERREURS[code] || "L'IA ne répond pas. Réessaie."); }
+    if (error){ let code = "", st = ""; try { st = error.context && error.context.status; const j = await error.context.json(); code = j.error + (j.status ? " " + j.status : ""); } catch(e){ code = code || (error.name || "") + " " + (error.message || ""); }
+      throw new Error((ERREURS[String(code).split(" ")[0]] || "L'IA ne répond pas. Réessaie.") + ` (code : ${code || st || "?"})`); }
     lu = data && data.carte;
   } catch(e){ A.etape = "oups"; A.err = e.message; rendreAjout(); dire("Oups. Réessaie."); return; }
   if (!lu || !lu.est_carte){ A.etape = "oups"; A.err = "Je ne vois pas de carte. Mets-la bien à plat, dans la lumière."; rendreAjout(); dire("Je ne vois pas de carte. Réessaie."); return; }
@@ -809,6 +844,46 @@ async function choisir(b){
   try { b.fiche = await ficheComplete(b.id); b.name = b.fiche.nom || b.name; if (b.fiche.image) b.image = b.fiche.image; } catch(e){}
   if (A.choix === b){ rendreAjout(); const d = S.cartes.find(c => c.cardId === b.id); if (b.fiche) dire(`C'est ${b.fiche.nom} ? ${sorte(b.fiche)}.` + (d && d.qte > 0 ? " Tu l'as déjà ! Ce sera un double." : "")); }
 }
+/* ---------- Viseur : appareil photo intégré avec le cadre d'une carte ---------- */
+let flux = null;
+$("vFermer").innerHTML = P.close; $("vAlbum").innerHTML = P.album; $("vNom").innerHTML = P.search;
+$("vAide").innerHTML = `<span class="ico">${P.plat.replace('viewBox="0 0 64 64"','viewBox="2 2 60 60"')}${P.lumiere}</span>Mets la carte dans le cadre`;
+async function ouvrirViseur(){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ montrerFeuillePhoto(); return; }
+  try {
+    flux = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1920}, height: {ideal: 1440}}, audio: false});
+  } catch(e){ montrerFeuillePhoto(); return; }
+  const v = $("vid"); v.srcObject = flux; $("viseur").classList.add("on");
+  try { await v.play(); } catch(e){}
+  dire("Mets ta carte dans le cadre, puis appuie sur le bouton rouge.");
+}
+function fermerViseur(){
+  $("viseur").classList.remove("on");
+  if (flux){ flux.getTracks().forEach(t => t.stop()); flux = null; }
+  $("vid").srcObject = null;
+}
+function montrerFeuillePhoto(){ A.etape = "photo"; rendreAjout(); $("vAjout").classList.add("on"); }
+function photographier(){
+  const v = $("vid"), vw = v.videoWidth, vh = v.videoHeight; if (!vw || !vh) return;
+  /* la vidéo est affichée en « cover » : on retrouve la zone du cadre dans l'image réelle, avec une petite marge */
+  const el = v.getBoundingClientRect(), c = $("cadre").getBoundingClientRect();
+  const s = Math.max(el.width / vw, el.height / vh), ox = (el.width - vw * s) / 2, oy = (el.height - vh * s) / 2;
+  const m = .08 * c.width;
+  let sx = (c.left - m - el.left - ox) / s, sy = (c.top - m - el.top - oy) / s, sw = (c.width + 2*m) / s, sh = (c.height + 2*m) / s;
+  sx = Math.max(0, sx); sy = Math.max(0, sy); sw = Math.min(vw - sx, sw); sh = Math.min(vh - sy, sh);
+  const k = Math.min(1, 1400 / Math.max(sw, sh));
+  const cv = document.createElement("canvas"); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+  cv.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+  const f = $("vFlash"); f.classList.add("on"); setTimeout(() => f.classList.remove("on"), 60);
+  const url = cv.toDataURL("image/jpeg", .88);
+  setTimeout(() => { fermerViseur(); $("vAjout").classList.add("on"); analyser(url); }, 180);
+}
+$("vDeclic").onclick = photographier;
+$("vFermer").onclick = () => { fermerViseur(); if (A.recue) montrerFeuillePhoto(); };
+$("vAlbum").onclick = () => { fermerViseur(); $("album").click(); };
+$("vNom").onclick = () => { fermerViseur(); A.etape = "nom"; A.lu = null; A.vf = "vraie"; rendreAjout(); $("vAjout").classList.add("on"); setTimeout(() => $("aQ") && $("aQ").focus(), 200); };
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && flux) fermerViseur(); });
+
 async function chercherNom(){
   const q = A.q.trim(); if (q.length < 2){ A.res = []; rendreNom(); return; }
   A.charge = true; A.err = ""; rendreNom();
@@ -837,7 +912,7 @@ $("fAjout").addEventListener("click", e => {
   const T = s => e.target.closest(s);
   if (T("[data-close]")) return fermer("vAjout");
   if (T("[data-dire]")) return dire(T("[data-dire]").dataset.dire);
-  if (T("#aCam") || T("#aRe")) return $("camera").click();
+  if (T("#aCam") || T("#aRe")){ fermer("vAjout"); return ouvrirViseur(); }
   if (T("#aAlbum")) return $("album").click();
   if (T("#aNom")){ A.etape = "nom"; A.lu = null; A.vf = "vraie"; rendreAjout(); setTimeout(() => $("aQ") && $("aQ").focus(), 200); return; }
   if (T("#aRetourPhoto")){ A.etape = "photo"; rendreAjout(); return; }
