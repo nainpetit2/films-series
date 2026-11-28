@@ -787,7 +787,7 @@ function rendreAjout(){
     const deja = new Set(S.cartes.map(c => c.cardId));
     f.innerHTML = `<div class="tete"><span style="width:46px"></span><h2>Laquelle ?</h2>${BOUTON_X()}</div>
       <div class="question">${A.photo ? `<img class="mini-photo" src="${A.photo}" alt="Ta photo">` : ""}<span class="q">Touche la carte qui est pareille que la tienne</span><button class="rond-btn voix" type="button" data-dire="Laquelle est ta carte ? Touche celle qui est pareille." aria-label="Écouter">${P.speak}</button></div>
-      <div class="res gros" id="aRes">${A.cands.map(r => `<button type="button" data-id="${esc(r.id)}"><span class="img ${deja.has(r.id)?"deja":""}">${imgTag(r.image,"low",r.name)}</span></button>`).join("")}</div>
+      <div class="res gros" id="aRes">${A.cands.map(r => `<button type="button" data-id="${esc(r.id)}"><span class="img ${deja.has(r.id)?"deja":""}">${imgTag(r.image,"low",r.name,A.photo)}</span></button>`).join("")}</div>
       <button class="btn sec" type="button" id="aRe">${P.camera}Reprendre la photo</button>`;
     return;
   }
@@ -806,10 +806,10 @@ function rendreAjout(){
   const b = A.choix, t = b.fiche;
   const deja = S.cartes.find(c => c.cardId === b.id);
   f.innerHTML = `<div class="tete"><button class="rond-btn voix" type="button" id="aDire" aria-label="Écouter">${P.speak}</button><h2>${esc(b.name)}</h2>${BOUTON_X()}</div>
-    <div class="detail-img">${imgTag(b.image,"high",b.name)}</div>
+    <div class="detail-img">${imgTag(b.image,"high",b.name,A.photo)}</div>
     ${t ? `<div class="tuiles-info"><div class="ti-info">${tIco(t.type)}<small>${esc(t.type)}</small></div><div class="ti-info">${etoiles(t.rang)}<small>${esc(t.rarete || "Rareté")}</small></div><div class="ti-info"><span class="gros" style="font-size:1.1rem;color:#9a6900">${t.cote ? eur(t.cote.moy) : "—"}</span><small>Cote</small></div></div>` : `<div class="points"><i></i><i></i><i></i></div>`}
     ${deja ? `<div class="deja-la">${P.doubles}<span>${deja.qte > 0 ? `Tu l'as déjà${deja.qte > 1 ? " (" + deja.qte + ")" : ""} !` : "Tu l'avais échangée"}<small>${deja.qte > 0 ? "Elle sera rangée dans tes doubles" : "Elle revient dans ta collection"}</small></span></div>` : ""}
-    ${A.lu && A.lu.authenticite && A.lu.authenticite !== "vraie" ? `<div class="indice" style="border-color:${VF[A.vf].c}">${P.loupe}<span><b>${esc(VF[normVF(A.lu.authenticite)].l)}</b>${(A.lu.indices||[]).length ? " : " + esc(A.lu.indices.join(", ")) : ""}</span></div>` : ""}
+    ${A.lu && A.lu.authenticite && A.lu.authenticite !== "vraie" ? `<div class="indice" style="border-color:${VF[A.vf].c}">${P.loupe}<span><b>${esc(VF[normVF(A.lu.authenticite)].l)}</b>${(A.lu.indices||[]).length ? " : " + esc(A.lu.indices.map(s => String(s).trim().replace(/\.$/, "")).join(" · ")) : ""}</span></div>` : ""}
     ${blocVF(A.vf, "aVf")}
     ${astuces()}
     <div class="stepper"><button type="button" id="aMoins" aria-label="Une de moins">−</button><span class="q">${taille(P.cards,30)}${A.qte}</span><button type="button" id="aPlus" aria-label="Une de plus">+</button></div>

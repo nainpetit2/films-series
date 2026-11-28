@@ -1,5 +1,5 @@
 // Mes cartes Pokémon — service worker : l'appli fonctionne sans réseau une fois ouverte une première fois.
-const CACHE = "pokemon-v4";
+const CACHE = "pokemon-v5";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./logo.svg"];
 
 self.addEventListener("install", (e) => {
